@@ -4,7 +4,7 @@ import tempfile
 import time
 
 from history import receipt_data, receipt_key
-from models import SendRejected, SendUncertain, StorageError
+from models import SendRejected, SendUncertain
 from utils import safe_label
 
 

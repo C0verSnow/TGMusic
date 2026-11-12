@@ -15,6 +15,7 @@ class Network:
     def __init__(self, config):
         self.config = config
         self.process = None
+        self.runtime_config_written = False
         self.proxy_url = None
         self.session = requests.Session()
         self.session.trust_env = False
@@ -63,6 +64,7 @@ class Network:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         path.write_text(self.config.mihomo_config_yaml)
         path.chmod(0o600)
+        self.runtime_config_written = True
         self.process = subprocess.Popen(["sudo", "-n", "mihomo", "-d", str(path.parent), "-f", str(path)],
                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                         start_new_session=True)
@@ -117,6 +119,6 @@ class Network:
         if self.process and self.process.poll() is None:
             subprocess.run(["sudo", "-n", "kill", "-TERM", "--", f"-{self.process.pid}"],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        if self.config.mihomo_config_path.exists():
+        if self.runtime_config_written and self.config.mihomo_config_path.exists():
             self.config.mihomo_config_path.unlink()
         self.session.close()

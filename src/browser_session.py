@@ -1,9 +1,7 @@
 import hashlib
 import io
-import json
 import logging
 import tarfile
-from pathlib import Path
 
 from cryptography.fernet import Fernet, InvalidToken
 
