@@ -42,7 +42,7 @@ class BrowserSession:
             archive.extractall(destination, filter="data")
         self.digest = profile_digest(destination)
 
-    def start(self):
+    def start(self, initial_url="https://music.youtube.com/"):
         from DrissionPage import ChromiumOptions, ChromiumPage
         options = ChromiumOptions(ini_path=self.config.browser_ini_path)
         options.set_user_data_path(str(self.config.browser_user_data_path))
@@ -53,7 +53,7 @@ class BrowserSession:
         if self.proxy_url:
             options.set_proxy(self.proxy_url)
         self.page = ChromiumPage(options)
-        self.page.get("https://music.youtube.com/")
+        self.page.get(initial_url)
         return self.page
 
     def detect_auth(self):
