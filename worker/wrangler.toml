@@ -1,0 +1,19 @@
+name = "tgmusic-webhook"
+main = "index.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+GITHUB_REPOSITORY = "C0verSnow/TGMusic"
+GITHUB_REF = "main"
+TELEGRAM_BOT_USERNAME = "replace_with_bot_username"
+R2_PROFILE_OBJECT = "auth/google-profile.tar.enc"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tgmusic"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "../migrations"
+
+[[r2_buckets]]
+binding = "PROFILES"
+bucket_name = "tgmusic-private"
