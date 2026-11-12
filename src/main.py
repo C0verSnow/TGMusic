@@ -70,13 +70,15 @@ def main():
         logging.info("Fetched %d YouTube Music songs", len(songs))
         history.set_auth(auth)
         resolver = AudioResolver(youtube, session, config)
-        summary = sync_targets(history, r2, telegram, resolver, songs, config, time.monotonic() + 1200)
+        summary = sync_targets(history, r2, telegram, resolver, songs, config, time.monotonic() + 1200,
+                               target_chat_ids=config.sync_target_chat_ids)
         history.assert_lease()
         export = r2.get("sync/latest.md", optional=True)
         r2.put("sync/latest.md", history.export(), etag=export[1] if export else None, create=export is None)
         browser.close()
         browser.backup()
-        history.completed()
+        if config.sync_target_chat_ids is None:
+            history.completed()
         if summary["held"] or summary["failed"]:
             telegram.notify(config.telegram_owner_id, f"TGMusic: {summary['failed']} 项失败，{summary['held']} 项结果待核对。请查看 Actions 日志。")
             return 1

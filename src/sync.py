@@ -8,11 +8,13 @@ from models import SendRejected, SendUncertain, StorageError
 from utils import safe_label
 
 
-def sync_targets(history, r2, telegram, resolver, songs, config, deadline=None):
+def sync_targets(history, r2, telegram, resolver, songs, config, deadline=None, target_chat_ids=None):
     summary = {"total": len(songs), "already_sent": 0, "new": 0, "success": 0, "failed": 0, "held": 0}
     budget = config.sync_max_songs
     for target in history.targets():
         chat_id = target["chat_id"]
+        if target_chat_ids is not None and chat_id not in target_chat_ids:
+            continue
         records = history.records(chat_id)
         if not target["initialized"]:
             history.initialize_target(target, songs, target["initial_mode"])

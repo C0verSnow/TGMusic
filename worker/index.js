@@ -81,7 +81,15 @@ export async function authorize(input, env) {
 async function execute(input, env, role) {
   const { command, chatId, args, userId } = input;
   if (command === 'sync') {
-    await dispatch(env);
+    let scope;
+    if (input.chatType !== 'private') scope = [chatId];
+    else if (role === 'admin') {
+      const targets = await env.DB.prepare('SELECT a.chat_id FROM admin_targets a JOIN targets t ON a.chat_id=t.chat_id WHERE a.user_id=? AND t.removed=0 AND t.enabled=1 ORDER BY a.chat_id')
+        .bind(userId).all();
+      scope = targets.results.map(row => row.chat_id);
+      if (!scope.length) { await reply(env, chatId, '暂无可同步的授权目标。'); return; }
+    }
+    await dispatch(env, scope);
     await reply(env, chatId, '已请求同步，GitHub Actions 将执行任务。');
   } else if (command === 'targets' || command === 'status') {
     let query = 'SELECT t.chat_id,t.type,t.enabled,t.send_mode,t.initialized FROM targets t WHERE t.removed=0';
@@ -157,11 +165,11 @@ function targetArgument(value) {
   return Number.isSafeInteger(id) && id !== 0 ? id : null;
 }
 
-async function dispatch(env) {
+async function dispatch(env, scope) {
   const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/sync.yml/dispatches`, {
     method: 'POST', headers: { Authorization: `Bearer ${env.GITHUB_WORKFLOW_TRIGGER_TOKEN}`,
       Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'TGMusic-Worker' },
-    body: JSON.stringify({ ref: env.GITHUB_REF || 'main' }), signal: AbortSignal.timeout(10000),
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', ...(scope ? { inputs: { target_chat_ids: JSON.stringify(scope) } } : {}) }), signal: AbortSignal.timeout(10000),
   });
   if (response.status !== 204) throw new Error('GitHub dispatch failed');
 }

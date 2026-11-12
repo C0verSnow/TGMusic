@@ -122,3 +122,12 @@ test('ignores ordinary messages, malformed updates and bot messages', () => {
   assert.equal(parseUpdate({}), null);
   assert.equal(parseUpdate({ update_id: 1, message: { from: { id: 1 }, chat: { id: 1, type: 'private' }, text: 'hello' } }), null);
 });
+
+test('admin sync dispatch is limited to assigned targets', async () => {
+  const f = fixture();
+  try {
+    await f.send('/sync', 2);
+    const dispatched = f.calls.find(x => x.url.includes('github'));
+    assert.deepEqual(dispatched.data, { ref: 'main', inputs: { target_chat_ids: '[-100]' } });
+  } finally { f.cleanup(); }
+});

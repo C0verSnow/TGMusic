@@ -117,8 +117,8 @@ def walk(value):
 
 
 def playlist_page(data):
-    for node in walk(data.get("contents", {})):
-        for name in ("musicPlaylistShelfRenderer", "musicShelfRenderer"):
+    for name in ("musicPlaylistShelfRenderer", "musicShelfRenderer"):
+        for node in walk(data.get("contents", {})):
             if name in node:
                 shelf = node[name]
                 return shelf.get("contents", []), continuation(shelf)

@@ -19,6 +19,11 @@ class TelegramBot:
             try:
                 response = self.session.post(self.url + method, data=data, files=files, timeout=(15, 120))
                 result = response.json()
+            except requests.ConnectTimeout:
+                if attempt < 2:
+                    self.sleep(attempt + 1)
+                    continue
+                raise SendRejected("Telegram connection timed out before sending") from None
             except (requests.RequestException, ValueError):
                 # A timeout can happen after Telegram accepted the message. Hold for reconciliation.
                 raise SendUncertain("Telegram result unknown; pending record held for review") from None

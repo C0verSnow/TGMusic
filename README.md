@@ -86,7 +86,7 @@ Repository Secrets 只保存：
 
 Repository Variables 设置项目 ID、环境 prod、路径 `/github-actions`、API 地址；完成初始化后才设 `TGMUSIC_ENABLED=true`。其他运行参数放 Infisical。手动执行 **YouTube Music Sync** 验收恢复、登录、列表及基线；下次新增一首歌验证发送。
 
-cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时任务跳过，防止配置未齐就自动运行。
+cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时任务跳过，防止配置未齐就自动运行。
 
 工作流固定 Python 3.12、DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
 
@@ -134,7 +134,7 @@ python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 
 - D1 主键是 `(chat_id, video_id)`。`baseline` 只是忽略首次旧收藏，不能当成“发送成功”；`sent` 还包含实际 `delivery_mode=audio|link` 和 Telegram message_id。
 - 单首歌曲或单个目标被 Telegram 明确拒绝时记 failed，继续其他歌曲；以后重试。429 按 retry_after 重试，最多三次，单次等待不超过 60 秒。
-- 网络超时和 Telegram 5xx 可能发生在服务器已经收下消息之后，不能盲目重发，保留 pending 并提醒 Owner。
+- 建连超时确认尚未发送时最多重试三次；响应超时和 Telegram 5xx 可能发生在服务器已经收下消息之后，不能盲目重发，保留 pending 并提醒 Owner。
 - 成功后先在 R2 写逐首回执，再写 D1。D1 写失败时，下次读取回执补齐状态，不再次发送。R2 回执也写失败则保留 pending 等人工核对。
 - 人工确认 Telegram 已收到，填真实 message_id 和实际发送类型：
 

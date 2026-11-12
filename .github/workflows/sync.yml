@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+    inputs:
+      target_chat_ids:
+        description: 'Optional JSON array of authorized target chat IDs; empty means all'
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -27,6 +32,7 @@ jobs:
         run: bash scripts/install-tools.sh
       - name: Fetch secrets and run sync
         env:
+          SYNC_TARGET_CHAT_IDS: ${{ inputs.target_chat_ids }}
           INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}

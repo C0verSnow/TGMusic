@@ -135,3 +135,12 @@ class SyncTests(unittest.TestCase):
         text = self.history.export().decode()
         self.assertIn('baseline', text)
         self.assertNotIn('| sent |', text)
+
+    def test_scoped_sync_does_not_touch_other_targets(self):
+        self.run_sync(self.songs[:2])
+        self.target(-100)
+        self.run_sync(self.songs[:2])
+        result = sync_targets(self.history, self.r2, self.sender, self.resolver,
+                              self.songs[:3], self.config, target_chat_ids={-100})
+        self.assertEqual(self.sender.sent, [(-100, 'C' * 11)])
+        self.assertNotIn('C' * 11, self.history.records(123))

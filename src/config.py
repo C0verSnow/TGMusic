@@ -1,4 +1,5 @@
 import os
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,6 +39,7 @@ class Config:
     mihomo_controller_url: str
     mihomo_select_group: str
     mihomo_us_node: str
+    sync_target_chat_ids: frozenset | None
 
     @classmethod
     def load(cls):
@@ -71,7 +73,7 @@ class Config:
             Path(os.getenv("MIHOMO_CONFIG_PATH", "/tmp/mihomo/config.yaml")),
             os.getenv("MIHOMO_PROXY_URL", "http://127.0.0.1:7890"),
             os.getenv("MIHOMO_CONTROLLER_URL", "http://127.0.0.1:9090"),
-            os.getenv("MIHOMO_SELECT_GROUP", ""), os.getenv("MIHOMO_US_NODE", ""),
+            os.getenv("MIHOMO_SELECT_GROUP", ""), os.getenv("MIHOMO_US_NODE", ""), target_scope(),
         )
 
 
@@ -90,3 +92,16 @@ def choice(key, default, values):
     if value not in values:
         raise SyncError(f"Invalid {key}")
     return value
+
+
+def target_scope():
+    raw = os.getenv("SYNC_TARGET_CHAT_IDS", "")
+    if not raw:
+        return None
+    try:
+        ids = json.loads(raw)
+    except ValueError:
+        raise SyncError("SYNC_TARGET_CHAT_IDS must be a JSON list of numeric chat IDs") from None
+    if not isinstance(ids, list) or not ids or any(type(value) is not int or value == 0 for value in ids):
+        raise SyncError("SYNC_TARGET_CHAT_IDS must be a nonempty JSON list of numeric chat IDs")
+    return frozenset(ids)

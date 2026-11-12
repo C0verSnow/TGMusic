@@ -48,3 +48,20 @@ class TelegramTests(unittest.TestCase):
         with self.assertRaises(SendRejected): self.bot.call('sendMessage', {})
         self.responses = [(500, {'ok': False, 'error_code': 500})]
         with self.assertRaises(SendUncertain): self.bot.call('sendMessage', {})
+
+    def test_connection_timeout_retries_before_request_was_sent(self):
+        import requests
+        class ConnectTwice(requests.Session):
+            def __init__(self):
+                super().__init__()
+                self.attempts = 0
+            def post(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts < 3:
+                    raise requests.ConnectTimeout()
+                return super().post(*args, **kwargs)
+        self.bot.session = ConnectTwice()
+        self.responses = [(200, {'ok':True, 'result':{'message_id':9}})]
+        self.assertEqual(self.bot.call('sendMessage', {})['message_id'], 9)
+        self.assertEqual(self.delays, [1, 2])
+        self.assertEqual(len(self.requests), 1)
