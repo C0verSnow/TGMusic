@@ -1,7 +1,5 @@
-import json
 import logging
 import os
-import signal
 import socket
 import subprocess
 import time
@@ -27,14 +25,17 @@ class Network:
             return self.session
         if self.config.mihomo_enabled == "false":
             raise SyncError("Runner cannot reach YouTube Music and Mihomo is disabled")
-        self.start_mihomo()
-        self.select_us_node()
+        self.enable_proxy()
+        return self.session
+
+    def enable_proxy(self):
         self.proxy_url = self.config.mihomo_proxy_url
         self.session.proxies = {"http": self.proxy_url, "https": self.proxy_url}
+        self.start_mihomo()
+        self.select_us_node()
         if not self.reachable():
             raise SyncError("Mihomo connectivity check failed; no direct fallback")
         logging.info("Mihomo US exit verified; explicit proxy remains mandatory for requests and Chromium")
-        return self.session
 
     def reachable(self):
         try:

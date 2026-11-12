@@ -12,7 +12,7 @@ from proxy import Network
 from sync import sync_targets
 from telegram_bot import TelegramBot
 from utils import configure_logging, mask_actions_secrets
-from youtube_client import YouTubeClient
+from youtube_client import CollectionError, YouTubeClient
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     browser = None
     history = None
     leased = False
-    telegram = TelegramBot(config.telegram_bot_token)
+    telegram = TelegramBot(config.telegram_bot_token, network.session)
     try:
         logging.info("Sync started")
         db = D1(config)
@@ -52,7 +52,21 @@ def main():
                 telegram.notify(config.telegram_owner_id, "TGMusic: Google 登录已失效，请重新导入登录档案。旧档案和历史已保留。")
             raise SyncError("Google auth " + auth + "; sync stopped")
         youtube = YouTubeClient(browser.page, session)
-        songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
+        try:
+            songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
+        except CollectionError:
+            if network.proxy_url or config.mihomo_enabled != "auto":
+                raise
+            logging.warning("YouTube API blocked or unavailable on direct exit; trying Mihomo")
+            network.enable_proxy()
+            browser.close()
+            browser.proxy_url = network.proxy_url
+            browser.r2 = r2 = R2(config, network.proxy_url)
+            browser.start()
+            if browser.detect_auth() != "VALID":
+                raise SyncError("Google auth not valid after switching exit; backup preserved")
+            youtube = YouTubeClient(browser.page, session)
+            songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
         logging.info("Fetched %d YouTube Music songs", len(songs))
         history.set_auth(auth)
         resolver = AudioResolver(youtube, session, config)
