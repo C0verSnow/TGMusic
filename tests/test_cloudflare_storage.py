@@ -16,7 +16,7 @@ from support import SQLiteD1
 class StorageTests(unittest.TestCase):
     def setUp(self):
         self.objects = {}
-        sqlite = SQLiteD1()
+        sqlite = SQLiteD1(check_same_thread=False)
         parent = self
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
