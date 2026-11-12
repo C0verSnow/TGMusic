@@ -165,4 +165,3 @@ if __name__ == "__main__":
     except Exception as error:
         print(str(error) if isinstance(error, SyncError) else "Management failed; sensitive output suppressed", file=sys.stderr)
         sys.exit(1)
-
