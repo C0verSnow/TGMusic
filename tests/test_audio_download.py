@@ -82,6 +82,13 @@ class AudioDownloadTests(unittest.TestCase):
         self.assertTrue(all(cookie == 'fixture=yes' and user_agent == 'TGMusic-Audio-Test'
                             for _, cookie, user_agent in self.requests))
 
+    def test_playlist_wildcard_downloads_songs_beyond_old_sample(self):
+        self.config.audio_authorized_video_ids = {'*'}
+        with tempfile.TemporaryDirectory() as directory:
+            result = self.resolver.resolve(self.song(), directory)
+            self.assertIsNotNone(result)
+            self.assertGreater(result.stat().st_size, 0)
+
     def test_unauthorized_sample_never_contacts_source(self):
         self.config.audio_authorized_video_ids = set()
         with tempfile.TemporaryDirectory() as directory:

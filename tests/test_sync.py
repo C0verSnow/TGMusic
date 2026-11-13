@@ -1,5 +1,6 @@
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -218,3 +219,61 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.db.query('SELECT enabled FROM targets WHERE chat_id=-100')[0]['enabled'], 0)
         self.run_sync(self.songs[2:3])
         self.assertEqual(parent.sent, [(123, 'C' * 11)])
+
+    def test_audio_target_upgrades_old_links_and_recovers_new_audio_receipt(self):
+        import json
+        from history import receipt_key
+        self.db.query("UPDATE targets SET send_mode='audio' WHERE chat_id=123")
+        for song in self.songs[:2]:
+            self.r2.put(receipt_key(123, song.video_id), json.dumps(
+                {'mode': 'link', 'message_id': 99, 'sent_at': 'old'}).encode(), create=True)
+        self.resolver = SimpleNamespace(resolve=lambda *args: Path('fixture.mp3'))
+        parent = self.sender
+        class AudioSender:
+            def send_song(self, chat_id, song, audio):
+                parent.send_song(chat_id, song, audio)
+                return 'audio', len(parent.sent)
+        self.sender = AudioSender()
+        original = self.history.sent
+        with patch.object(self.history, 'sent', side_effect=StorageError('D1 offline')):
+            with self.assertRaises(StorageError):
+                self.run_sync(self.songs[:1])
+        self.history.sent = original
+        self.assertEqual(self.run_sync(self.songs[:2])['remaining'], 0)
+        self.assertEqual(parent.sent, [(123, song.video_id) for song in self.songs[:2]])
+        self.run_sync(self.songs[:2])
+        self.assertEqual(len(parent.sent), 2)
+        self.assertTrue(all(row['delivery_mode'] == 'audio' for row in self.history.records(123).values()))
+
+    def test_missing_audio_is_failed_without_sending_another_link(self):
+        self.db.query("UPDATE targets SET send_mode='audio' WHERE chat_id=123")
+        result = self.run_sync(self.songs[:3])
+        self.assertEqual(self.sender.sent, [])
+        self.assertEqual(result['failed'], 3)
+        self.assertEqual(result['remaining'], 3)
+
+    def test_old_link_receipt_cannot_complete_uncertain_audio_upgrade(self):
+        import json
+        from history import receipt_key
+        self.db.query("UPDATE targets SET send_mode='audio' WHERE chat_id=123")
+        song = self.songs[0]
+        self.history.pending(123, song)
+        self.r2.put(receipt_key(123, song.video_id), json.dumps(
+            {'mode': 'link', 'message_id': 99, 'sent_at': 'old'}).encode(), create=True)
+        result = self.run_sync([song])
+        self.assertEqual(result['held'], 1)
+        self.assertEqual(result['remaining'], 1)
+        self.assertEqual(self.history.records(123)[song.video_id]['status'], 'pending')
+
+    def test_rate_limit_stops_other_songs_and_targets_for_this_run(self):
+        self.target(-100)
+        calls = []
+        class RateLimited:
+            def send_song(self, chat_id, song, audio):
+                calls.append((chat_id, song.video_id))
+                raise SendRejected('rate limited', code=429)
+        self.sender = RateLimited()
+        result = self.run_sync(self.songs)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result['failed'], 1)
+        self.assertEqual(result['remaining'], 6)
