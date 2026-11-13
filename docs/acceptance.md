@@ -1,6 +1,6 @@
 # 真实服务与远端 CI 验收记录
 
-本文件区分“代码有测试”和“真实服务已跑通”。最新状态见文末 Issue #3：两个真实新 Runner 已完成登录恢复、指定歌单读取、91 首基线和无新增不重复。禁止本地编译验证；本轮用户另行明确允许预构建 Docker 的本地真实账号排查，没有进行本地镜像构建或编译。
+本文件区分“代码有测试”和“真实服务已跑通”。最新进展见文末 Issue #5；Issue #3 已完成两个真实新 Runner 的登录恢复、指定歌单读取、91 首基线和无新增不重复。禁止本地编译验证；本轮用户另行明确允许预构建 Docker 的本地真实账号排查，没有进行本地镜像构建或编译。
 
 ## 已有远端证据
 
@@ -130,3 +130,19 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 隔离重放从原加密档案开始：UNKNOWN（Cookie 选择页）→ 正常页面准备与 Sign in → VALID → 正式读取器返回 91 首。临时 DEBUG-issue3 探针已全部移除。GitHub 检索和官方文档参考写入 docs/design.md，未复制来源不明的代码或加入新依赖；myenv/config.yaml 未修改，也没有写入或启用 Mihomo 配置。
 
 本次已完成新 Runner 的真实恢复、基线与无新增不重复；真实新增发送、音频播放、群组和 Worker 部署仍未验收，定时同步继续关闭。PR #4 交用户 review，不自行合并。
+
+
+## Issue #5：六小时调度、真实 Worker 与发送联调（进行中）
+
+- 分支 `feature/issue-5-six-hour-sync`，草稿 [PR #6](https://github.com/C0verSnow/TGMusic/pull/6)，未合并。
+- 提交 `a76aa52` 的 [push CI 43414821023](https://github.com/C0verSnow/TGMusic/actions/runs/43414821023) 通过：Python 39 项、Worker 8 项、Worker 打包与预构建 Docker 浏览器。[PR CI 43415122375](https://github.com/C0verSnow/TGMusic/actions/runs/43415122375) 第二次尝试通过；第一次是原有浏览器归档回归在导航时出现 ContextLostError，只重跑失败任务，没有因此修改产品代码。
+- 六小时 cron 已改为 UTC 00:17、06:17、12:17、18:17，移除旧 `SYNC_INTERVAL_MINUTES` 门槛；正式 `main()` 回归使用真实 SQLite 和正式同步流程，验证近期成功后定时及手动任务照常执行且不重发。
+- Worker 已通过 `wrangler deploy --no-bundle` 直接上传（没有本地构建），地址 `https://tgmusic-webhook.f1515xcn.workers.dev`。首次版本 `d2ecc348-cab2-4fdb-952b-1b0a00c9e39c`；为联调临时将 GITHUB_REF 指向 feature 分支，仓库配置仍为 main。
+- 现有四项 Worker Secrets 已通过 Wrangler 注入；真实 `setWebhook` 成功，`getWebhookInfo` 的 URL 正确、待投递为 0。缺失和错误 Webhook Secret 请求实际均返回 403。**一次性 Secrets 上传不等于持续 Infisical Secret Sync**。
+- 用户确认验收群为 Music `-1004447109031`。Bot API 验证 Owner 为 creator，Bot 为 administrator。通过用户指定的本机 `tg` 真实账号发送 `/addtarget`，收到“目标已授权”；D1 新增群目标，首次模式仍是 baseline。
+- 群内真实 `/sync@C0verSnow_TGMusic_Test_bot` 触发 [43415724056](https://github.com/C0verSnow/TGMusic/actions/runs/43415724056)，私聊 `/sync` 触发 [43415732090](https://github.com/C0verSnow/TGMusic/actions/runs/43415732090)。D1 审计均 allowed；不是伪造 Telegram Webhook。
+- 用户授权的音频样例是 `gHk8MIx6nfY`，已写入 Infisical `AUDIO_AUTHORIZED_VIDEO_IDS`。它原本就在 91 首旧基线中；经用户明确同意，先备份并只撤销私聊该首 baseline，预计历史计数同步为 90。没有删除已发送记录或其他歌曲。此测试模拟新歌曲，不将它描述成歌单实际新增。
+- 当前阻塞：Infisical 无 Cloudflare App Connection。现有机器身份不能管理 App Connection；个人 CLI 会话可以读取。Wrangler OAuth 可以部署和注入 Secrets，但用户/账号 Token 管理接口为 403，CLI 没有创建长期 API Token 的命令。仍需 Workers Scripts Edit + Account Settings Read 的专用 Token，才能创建并验收持续 Secret Sync。用户授权接管浏览器，但 macOS 辅助功能和 Chrome AppleEvents JavaScript 均阻止控制；没有更改这些系统权限。
+- 合并 review 前 `TGMUSIC_ENABLED=false`：GitHub schedule 只运行默认分支，提前打开会执行 main 中旧的五分钟 cron。合并后才启用并核对六小时调度。
+
+本轮仅做本地静态解析、语法与差异检查，没有进行本地构建、编译、测试或冒烟。已在 GitHub 检索并比较 Infisical 与 workers-sdk，维护、许可证、方案取舍及源码链接见 `docs/design.md`。

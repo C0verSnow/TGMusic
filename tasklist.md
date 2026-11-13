@@ -85,6 +85,20 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794569381] 用户已保存专用 Cloudflare Token，验证 active；用既有个人 Infisical CLI 会话建立 tgmusic-worker-secrets App Connection 和自动 Secret Sync（01fddc4a-8d48-480b-a168-1b96b552e9d2），状态 succeeded，四项 secret_text 已核对。私聊 sync 43415732090 成功：指定歌曲只发送一次 link、message_id=18、attempts=1；音频仍未通过。用户同意先做远端不发送的音频诊断，增加 check-audio 手动入口，复用正式实现，不引入新组件。
+
+- [1794568783] 按用户要求再次核对 Wrangler 支持的 OAuth scopes，确无 Token 创建权限。已按 Cloudflare 官方模板 URL 在浏览器打开预填表单：TGMusic Infisical Worker Secrets，仅当前账号 Workers Scripts Edit + Account Settings Read。群组 sync 43415724056 成功：VALID、91 首新群基线、发送 0，未动私聊。
+
+- [1794568674] PR CI 43415122375 第二次尝试已通过。真实 tg 群命令触发 sync 43415724056，私聊命令触发 43415732090；Worker 审计均 allowed，Bot 返回已请求同步。按用户要求复查 Wrangler auth/token/help/scopes：只有读取当前 OAuth 凭据和部署能力，没有创建长期 API Token 的命令，OAuth 的 Token 管理 API 返回 403；仍不能据此宣称持续 Secret Sync 完成。
+
+- [1794568613] 通过本机 tg 以真实 Owner 发出 /addtarget，Bot 返回“目标已授权”，D1 已新增 Music 群且保持首次基线。已继续发送群内 /sync 和私聊 /sync。浏览器接管实际被 macOS 辅助功能和 Chrome AppleEvents JavaScript 设置阻止，已请用户打开脚本控制或直接保存专用 Token。PR CI 的旧浏览器归档测试遇到 ContextLostError，只重跑失败任务。
+
+- [1794568478] 用户已明确同意只让程序忘掉指定歌曲：备份并删除私聊 gHk8MIx6nfY 的唯一 baseline 记录，同步更新该目标预计条数为 90；没有删已发送记录或其他歌曲。用户要求使用本机 tg 指令发送真实 Telegram 命令，并授权接管其已登录的 Cloudflare / Infisical 浏览器。
+
+- [1794568367] PR #6 已建草稿；a76aa52 的 push CI 43414821023 全通过（Python 39 项、Worker 8 项及打包、预构建 Docker 浏览器）。Wrangler 用 --no-bundle 与 IPv4 优先直接上传成功，Worker 版本 d2ecc348-cab2-4fdb-952b-1b0a00c9e39c。为继续联调先注入现有四项 Worker Secrets 并注册真实 Webhook；持续 Infisical Secret Sync 仍等专用 Token，二者不混为已完成。
+
+- [1794568283] a76aa52 已推送，远端 CI 43414821023 执行中。核对 Music 群 Owner 为群主、Bot 为管理员。真实 D1 显示指定歌曲已在旧基线，已询问是否只撤销该首 baseline；Infisical 无 Cloudflare App Connection，现有 OAuth 无创建 Token 权限，已请求用户把专用 Token 保存到本仓库 .env。Wrangler 无构建部署遇到连接失败，继续排查连接，不做本地测试。
+
 - [1794568144] 用户指定 gHk8MIx6nfY 并已新增到歌单，已写入 Infisical 音频授权清单；API 发现实际 Music 超级群 ID 为 -1004447109031，用户已确认用于验收。已改为 UTC 每六小时 cron，移除旧间隔门槛，补正式主流程和群内指令回归，准备远端 CI。
 
 - [1794567574] 开始 Issue #5：已读取正文，main 已包含 PR #4；基于最新 origin/main 创建 feature/issue-5-six-hour-sync。核对六小时调度、Worker 部署和 Secret Sync；真实音频及群组信息已向用户询问。全程不做本地编译验证。

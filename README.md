@@ -119,6 +119,8 @@ cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram 
 
 工作流固定 Python 3.12、DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
 
+音频回退为链接时，可在 Run workflow 选择 `operation=check-audio`，填写已在 `AUDIO_AUTHORIZED_VIDEO_IDS` 授权的 `video_id`。它在远端恢复真实档案并调用正式音频解析、下载与转码，只输出是否可播放、音频地址类型和文件大小，不发送消息、不修改歌曲历史，也不上传登录档案。检查失败与正常同步的链接回退要分开看。
+
 ### 5. 部署 Worker
 
 在 `worker/wrangler.toml` 填好 D1 UUID、R2 桶和 Bot 用户名，在有授权的部署环境执行：

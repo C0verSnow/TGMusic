@@ -5,12 +5,17 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'sync runs normally; bootstrap explicitly initializes empty D1/R2 once'
+        description: 'sync sends new songs; bootstrap initializes once; check-audio inspects an authorized sample'
         type: choice
         options:
           - sync
           - bootstrap
+          - check-audio
         default: sync
+      video_id:
+        description: 'check-audio only: video ID already authorized in Infisical; does not send messages'
+        required: false
+        default: ''
       target_chat_ids:
         description: 'Optional JSON array of authorized target chat IDs; empty means all'
         required: false
@@ -40,6 +45,7 @@ jobs:
       - name: Fetch secrets and run selected operation
         env:
           TGMUSIC_OPERATION: ${{ inputs.operation || 'sync' }}
+          TGMUSIC_VIDEO_ID: ${{ inputs.video_id }}
           SYNC_TARGET_CHAT_IDS: ${{ inputs.target_chat_ids }}
           INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
@@ -50,6 +56,8 @@ jobs:
         run: |
           if [ "$TGMUSIC_OPERATION" = bootstrap ]; then
             python src/infisical_boot.py src/manage.py bootstrap
+          elif [ "$TGMUSIC_OPERATION" = check-audio ]; then
+            xvfb-run -a python src/infisical_boot.py scripts/check-audio.py "$TGMUSIC_VIDEO_ID"
           else
             xvfb-run -a python src/infisical_boot.py src/main.py
           fi
