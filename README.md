@@ -42,7 +42,7 @@ flowchart LR
 
 ### 2. 准备 Infisical
 
-当前使用已有 **Example Project** 的机器身份，保留 dev / staging / prod 环境。在 prod 的 `/tgmusic` 下按用途建文件夹：
+当前使用已有 **Example Project** 的组织共用机器身份，运行环境统一为 dev。在 dev 的 `/tgmusic` 下按用途建文件夹：
 
 | 目录 | 放什么 |
 |---|---|
@@ -84,7 +84,7 @@ python src/infisical_boot.py src/manage.py login
 
 #### 在本机通过 Docker 完成人工登录
 
-macOS/Windows 可使用仓库提供的预构建 Linux Chromium，不需要在宿主系统导出 Cookie，也不需要构建 Docker 镜像。先启动 Docker，并完成 `infisical login`；仓库 `.env` 填写 Example Project 的 `INFISICAL_PROJECT_ID`、环境和目录。程序先读取 `.env` 中的定位参数，再通过 Infisical CLI 读取 prod `/tgmusic/github-actions` 的 R2 配置和加密密钥。
+macOS/Windows 可使用仓库提供的预构建 Linux Chromium，不需要在宿主系统导出 Cookie，也不需要构建 Docker 镜像。先启动 Docker，并完成 `infisical login`；仓库 `.env` 填写 Example Project 的 `INFISICAL_PROJECT_ID`、环境和目录。程序先读取 `.env` 中的定位参数，再通过 Infisical CLI 读取 dev `/tgmusic/github-actions` 的 R2 配置和加密密钥。
 
 ```sh
 bash scripts/docker-login.sh --ini config/browser.ini
@@ -104,14 +104,11 @@ Wrangler CLI 优先用于云资源管理。核对过的 Wrangler 4.160.1 对象�
 
 ### 4. 配置 GitHub
 
-Repository Secrets 只保存：
-
-- `INFISICAL_CLIENT_ID`
-- `INFISICAL_CLIENT_SECRET`
+Repository Secrets 只保存本仓库的 `INFISICAL_SECRET_PATH`。共用机器身份放在 Organization Secrets。
 
 同步工作流须先进入默认分支，才能首次从 Actions 页面或 Worker 手动触发；只在功能分支存在还不够，见 [GitHub 官方触发规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。PR #2 已合并，手动触发入口已具备；验收期间保持定时关闭。
 
-Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 `/tgmusic/github-actions`、API 地址。其他运行参数放 Infisical。`TGMUSIC_ENABLED` 只控制定时任务；手动任务可在它为 `false` 时运行，Worker 发起的手动任务也一样。
+Organization Secrets 保存共用的 `INFISICAL_CLIENT_ID` 和 `INFISICAL_CLIENT_SECRET`；Repository Secret `INFISICAL_SECRET_PATH` 设置为 `/tgmusic/github-actions`。Organization Variables 保存 Example Project 的项目 ID、环境 dev 和 API 地址。其他运行参数放 Infisical。`TGMUSIC_ENABLED` 只控制定时任务；手动任务可在它为 `false` 时运行，Worker 发起的手动任务也一样。
 
 在 Actions 的 **YouTube Music Sync → Run workflow** 选择要验收的分支：
 
@@ -134,7 +131,7 @@ cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram 
 npx wrangler@4.45.0 deploy --no-bundle --config worker/wrangler.toml
 ```
 
-Worker 是原生 JavaScript，`--no-bundle` 直接上传源码，跳过本地构建。随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 prod `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
+Worker 是原生 JavaScript，`--no-bundle` 直接上传源码，跳过本地构建。随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 dev `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
 
 在可信配置环境注入 Telegram Token 和 Webhook Secret 后注册：
 

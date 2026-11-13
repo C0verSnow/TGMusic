@@ -88,8 +88,8 @@ def load_secrets(env):
     if not project:
         raise RuntimeError("请在仓库 .env 填写 INFISICAL_PROJECT_ID。")
     command = ["infisical", "secrets-manager", "secrets", "get", "--output=json", "--silent", "--expand=false",
-               "--projectId=" + project, "--env=" + env.get("INFISICAL_ENVIRONMENT", "prod"),
-               "--path=" + env.get("INFISICAL_SECRET_PATH", "/github-actions")]
+               "--projectId=" + project, "--env=" + env.get("INFISICAL_ENVIRONMENT", "dev"),
+               "--path=" + env.get("INFISICAL_SECRET_PATH", "/tgmusic/github-actions")]
     result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=40)
     if result.returncode:
         raise RuntimeError("无法读取 Infisical 配置，请先运行 infisical login。")

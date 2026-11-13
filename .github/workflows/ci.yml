@@ -57,3 +57,27 @@ jobs:
           TGMUSIC_STATE_DIR: ${{ runner.temp }}/tgmusic-docker-login
           TGMUSIC_INI_PATH: ${{ github.workspace }}/config/browser.ini
         run: docker compose -f docker-compose.login.yml down --remove-orphans
+
+  secrets:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned and verified tools
+        run: bash scripts/install-tools.sh
+      - name: Verify configuration without starting application services
+        env:
+          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}
+          INFISICAL_ENVIRONMENT: ${{ vars.INFISICAL_ENVIRONMENT }}
+          INFISICAL_SECRET_PATH: ${{ secrets.INFISICAL_SECRET_PATH }}
+          INFISICAL_API_URL: ${{ vars.INFISICAL_API_URL }}
+        run: >-
+          python src/infisical_boot.py -c
+          'import os; required = ["R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "PROFILE_ENCRYPTION_KEY", "TELEGRAM_BOT_TOKEN"];
+          assert all(os.environ.get(key) for key in required); print("Runner configuration is available")'
