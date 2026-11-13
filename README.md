@@ -119,7 +119,7 @@ Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 
 
 cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram `/sync` 或 Actions 手动运行会立即请求额外的一次同步，不改变固定定时时刻。GitHub cron 使用 UTC，夏令时只会改变当地显示时间。旧的 `SYNC_INTERVAL_MINUTES` 不再使用，可从 Infisical 移除；调度以 `.github/workflows/sync.yml` 为准。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
 
-工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。同步 job 使用短期 `GITHUB_TOKEN` 的 `contents: write`，仅自动提交 `docs/latest.md` 到当前运行分支；CI 仍为 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
+工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。同步 job 使用短期 `GITHUB_TOKEN` 的 `contents: write`，仅自动提交 `docs/latest.md` 到当前运行分支；CI 仍为 `contents: read`。同步任务 30 分钟超时，同一并发组不取消正在进行的任务。
 
 音频回退为链接时，可在 Run workflow 选择 `operation=check-audio`，填写已在 `AUDIO_AUTHORIZED_VIDEO_IDS` 授权的 `video_id`。它在远端恢复真实档案并调用正式音频解析、下载与转码，只输出正式解析是否成功、音频格式和文件大小，不发送消息、不修改歌曲历史，也不上传登录档案。检查失败与正常同步的链接回退要分开看。
 
@@ -166,7 +166,7 @@ python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 ## 发送、失败与恢复
 
 - D1 主键是 `(chat_id, video_id)`。只有 `sent` 算已发送，保留实际 `delivery_mode=audio|link`、Telegram message_id 和发送时间。旧 `baseline` 算未发送，会逐次补发；新目标首次也补发。`INITIAL_SYNC_MODE` 的旧值仍兼容读取，但不再让 baseline 跳过发送。
-- [歌曲清单](docs/latest.md) 由正式 D1 记录和本次完整歌单自动生成，列出每个聊天的已发送、未发送、发送失败与待核对歌曲；未核对的其他聊天保留原记录并明确标注。本轮不在歌单里的旧成功记录仍保留，防止重新收藏后重复发送。
+- [歌曲清单](docs/latest.md) 由正式 D1 记录和本次完整歌单自动生成，列出每个聊天的已发送、未发送、发送失败与待核对歌曲，以及是否在本次歌单中；未核对的其他聊天保留原记录并明确标注。本轮不在歌单里的旧成功记录仍保留，防止重新收藏后重复发送。
 - `/sync` 先回复“已请求”，Runner 补发、保存回执与 D1、更新 R2 副本和仓库 `docs/latest.md`、备份登录档案后，才回原聊天报告结果。歌单全部已发送才显示“同步完成”；失败、待核对、无启用目标、达到 `SYNC_MAX_SONGS`（默认每轮最多 20 次发送）或 20 分钟发送时限时，显示尚未完成，继续 `/sync` 只处理剩余项。定时或 Actions 手动运行没有指定回执聊天时通知 Owner。
 - `docs/latest.md` 自动写入当前运行分支：review 前手动运行 feature 分支不会修改 main；合并后 `/sync` 和定时运行 main。GitHub 发布失败时不记成功，重跑会根据 D1 跳过已发歌曲。清单是发送记录的展示，不从 Markdown 反向恢复或覆盖 D1。Bot API 不能拉取任意旧聊天历史，也无法发现用户后来删除消息。
 - 单首歌曲或单个目标被 Telegram 明确拒绝时记 failed，继续其他歌曲；以后重试。429 按 retry_after 重试，最多三次，单次等待不超过 60 秒。
@@ -212,7 +212,7 @@ python src/infisical_boot.py src/manage.py rotate-profile-key
 
 本仓库禁止本地构建、编译及会触发编译的测试。提交后由 [CI](.github/workflows/ci.yml) 在 GitHub 执行 Python unittest、Node 内置测试和 Worker 远端打包检查。测试用真实 SQLite 执行正式迁移和 SQL；Telegram 重试使用 CI 内的 HTTP 测试服务；云存储/发送边界使用小型替身，不复制去重业务逻辑。
 
-`YOUTUBE_PLAYLIST_ID` 放在 Infisical 的 github-actions 目录，默认 `LM` 表示“喜欢的音乐”；也可填写指定 YouTube 歌单的 ID（不是完整 URL）。首次建立基线前选好目标；不可用的视频按列表接口返回情况跳过。
+`YOUTUBE_PLAYLIST_ID` 放在 Infisical 的 github-actions 目录，默认 `LM` 表示“喜欢的音乐”；也可填写指定 YouTube 歌单的 ID（不是完整 URL）。首次同步前选好歌单；不可用的视频按列表接口返回情况跳过。
 
 恢复档案后，浏览器遇到 YouTube Cookie 选择页会拒绝可选 Cookie；若 Google 会话可用但 YouTube 尚未登录，会继续页面上的普通 Sign in 跳转，最多等待 20 秒。脚本不会填写密码、验证码或二次验证。仍无法登录时停止并保留旧档案；出现未识别的 Cookie 选择页也会停止，交由人工查看。
 

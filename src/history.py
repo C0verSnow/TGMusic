@@ -78,6 +78,7 @@ class History:
                  "只有“已发送”会跳过。旧 baseline 算未发送；待核对项目不会自动重发。", "",
                  "清单生成时间（UTC）：" + utc_now(), ""]
         labels = {"sent": "已发送", "baseline": "未发送", "pending": "待核对", "failed": "发送失败"}
+        playlist_ids = {song.video_id for song in songs}
         targets = self.db.query("SELECT * FROM targets WHERE removed=0 ORDER BY chat_id")
         for target in targets:
             chat_id = target["chat_id"]
@@ -90,11 +91,12 @@ class History:
             lines.extend([f"## 聊天 {chat_id}", "",
                           ("启用" if target["enabled"] else "暂停") + "；" +
                           ("本次已核对歌单" if checked else "本次未核对歌单，仅保留已有记录"), "",
-                          "| video_id | 歌曲 | 歌手 | 发送状态 | 类型 | Telegram 消息 ID | 发送时间（UTC） |",
-                          "|---|---|---|---|---|---|---|"])
+                          "| video_id | 歌曲 | 歌手 | 发送状态 | 类型 | Telegram 消息 ID | 发送时间（UTC） | 本次歌单 |",
+                          "|---|---|---|---|---|---|---|---|"])
             for video_id, row in sorted(entries.items()):
                 values = (video_id, row["title"], row["artist"], labels[row["status"]],
-                          row.get("delivery_mode"), row.get("message_id"), row.get("sent_at"))
+                          row.get("delivery_mode"), row.get("message_id"), row.get("sent_at"),
+                          ("是" if video_id in playlist_ids else "否") if checked else "未核对")
                 lines.append("| " + " | ".join(markdown_cell(value) for value in values) + " |")
             lines.append("")
         if not targets:

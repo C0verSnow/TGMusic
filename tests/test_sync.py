@@ -182,6 +182,16 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(text.count('EEEEEEEEEEE'), 1)
         self.assertIn('本次未核对歌单，仅保留已有记录', text)
 
+    def test_songs_removed_from_playlist_remain_history_without_blocking_completion(self):
+        self.db.query("INSERT INTO history(chat_id,video_id,title,artist,status) VALUES(123,?,'D','Artist','baseline')",
+                      ('D' * 11,))
+        self.assertEqual(self.run_sync(self.songs[:2])['remaining'], 0)
+        text = self.history.export(self.songs[:2], [123]).decode()
+        old = next(line for line in text.splitlines() if line.startswith('| DDDDDDDDDDD |'))
+        self.assertTrue(old.endswith('| 否 |'))
+        self.assertIn('| 未发送 |', old)
+        self.assertIn('AAAAAAAAAAA', text)
+
     def test_scoped_sync_does_not_touch_other_targets(self):
         self.run_sync(self.songs[:2])
         self.target(-100)
