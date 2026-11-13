@@ -1,6 +1,6 @@
 # 设计与参考记录
 
-核对日期：2026-11-13。Issue #7 与用户本轮确认优先，采用 Cloudflare Worker；代理默认 auto；新增目标补发未发送歌曲；默认偏好 audio；权限放 D1；Worker 使用 Infisical Cloud 的 Secret Sync。
+核对日期：2026-11-13。Issue #9 与用户本轮确认优先；最新音频、限速与续跑规则见末节，早期 Issue 的说明保留为历史记录，采用 Cloudflare Worker；代理默认 auto；新增目标补发未发送歌曲；默认偏好 audio；权限放 D1；Worker 使用 Infisical Cloud 的 Secret Sync。
 
 ## GitHub 检索与候选比较
 
@@ -131,3 +131,27 @@ Worker 是无外部 import 的原生 ES module，可用 `wrangler deploy --no-bu
 | [aiogram](https://github.com/aiogram/aiogram) | 5,936 星，2026-11-10 有提交，MIT；[PR #2003](https://github.com/aiogram/aiogram/pull/2003) 有响应且已关闭 | [`StorageKey` / `BaseStorage`](https://github.com/aiogram/aiogram/blob/dev-3.x/aiogram/fsm/storage/base.py) 把 chat_id 纳入存储键，异步框架使用 aiohttp，持久化后端可选 Redis；PR #2003 记录复制消息时元数据丢失，说明不能凭消息显示猜测发送内容 | 参考存储按聊天隔离；保留现有 `(chat_id, video_id)` 与实际 message_id，不增加 Redis、aiohttp 或聊天爬取 |
 
 仓库文档采用 GitHub 官方 [Contents API](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents)：读取运行分支现有文件 SHA，再创建或更新唯一的 `docs/latest.md`。使用现有 requests 与工作流短期 [GITHUB_TOKEN](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)，仅同步 job 增加 contents: write，无新长期密钥。403/409 直接报未完成，不强推或自行扩权。只在 GitHub Actions 自动提交；手动在其他环境运行脚本仅写本机文档，部署验收仍以正式 Actions 为准。同步工作流的 contents 写入不用于修改代码或其他文件。
+
+
+## Issue #9：音频补发、30 秒间隔与自动分轮
+
+真实失败 [Runner 43433722679](https://github.com/C0verSnow/TGMusic/actions/runs/43433722679) 在 46 秒内发送 20 条 link，剩余 70 首；两个目标的 send_mode 均为 audio，而生产 AUDIO_AUTHORIZED_VIDEO_IDS 只放行此前验收的一首 gHk8MIx6nfY。正常解析没有被调用，也没有回退警告。旧代码把 link 记作 sent 后永久跳过，又在 20 首预算耗尽后要求人工再次 /sync。这三个行为与本 Issue 的预期不符。
+
+按用户 2026-11-13 的选择，一次 /sync 后自动分轮继续，直到发完。正常音频同步不再使用样例名单，处理当前配置歌单；check-audio 也要求样例属于当前歌单。音频失败不发送链接，保留 failed；link 模式仍发送链接。audio 模式只有 sent/audio 算完成，旧 sent/link 展示为“待补音频”，会补发一次音频并更新回执。旧 link 回执不能恢复音频 pending；不确定发送仍由 Owner 核对，不擅自重发。
+
+复用现有 requests、同步工作流、D1/R2 和短期 GITHUB_TOKEN，不引入异步框架、队列服务或新依赖。RequestPacer 用单调时钟分别约束下载与 Telegram，请求结束或失败后至少等待 30 秒；Telegram 的 retry_after 可以延长等待，不能缩短 30 秒间隔。三次 429 后不继续向其他目标发歌。文件重试仍 rewind 上传流，5xx/响应超时保留 pending。
+
+每轮仍受 20 首和 20 分钟处理边界约束，先发布清单和备份登录档案，再以 actions: write 派发 sync.yml 下一轮；沿用当前分支、目标范围与原回执聊天。仅有进展、没有 failed/held/paused/不可用目标时续跑；失败、无进展、续跑派发失败都不自动循环。后续 Runner 经现有 concurrency 串行执行，queue: max 避免新的请求替换等待中的续跑；最终无剩余才报告同步完成。代码可回退，已发送的 Telegram 消息不会随回退消失。
+
+### GitHub 检索和方案取舍
+
+本轮在 GitHub 检索 python-telegram-bot、aiogram，再读取官方源码、许可证、提交与问题记录；只借鉴设计，不复制源码。
+
+| 项目 | 活跃度与许可证 | 实现、依赖与限制 | 本仓库选择 |
+|---|---|---|---|
+| [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) | 29,592 星，2026-11-12 更新；[源码](https://github.com/python-telegram-bot/python-telegram-bot/blob/master/src/telegram/ext/_aioratelimiter.py) 标明 LGPL-3.0-or-later；[#5270](https://github.com/python-telegram-bot/python-telegram-bot/issues/5270) 有讨论并关闭 | AIORateLimiter 将请求节流与 RetryAfter 冷却集中处理；依赖 asyncio、HTTPX、可选 aiolimiter。默认允许突发，不直接等于每 30 秒一首；文档说明 RetryAfter 可暂停全部请求 | 参考集中节流和全局冷却，使用现有同步 requests，不安装框架 |
+| [aiogram](https://github.com/aiogram/aiogram) | 5,936 星，2026-11-10 更新；MIT；[#1981](https://github.com/aiogram/aiogram/issues/1981) 有响应并在 11 月 9 日关闭 | [Dispatcher](https://github.com/aiogram/aiogram/blob/dev-3.x/aiogram/dispatcher/dispatcher.py) 区分处理、持久化和异常；依赖 asyncio、aiohttp、Pydantic、aiofiles；异步并发本身不会保证歌曲间隔，仍需显式限速 | 保留现有串行发送，跨 Runner 用已存在的工作流分轮，减少改动范围 |
+
+续跑使用 [GitHub 官方触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)：GITHUB_TOKEN 的 workflow_dispatch 是能创建新运行的例外；不额外引入长期 Token。[并发队列规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) 明确 queue: max 可保留多个 pending 运行。R2 更新继续沿用已有条件写入，不引入新的存储流程。
+
+本仓库流程优先于技能的一般迁移建议：TGMusic 现有 Bot API 的调用与回执不迁往个人账号 CLI；如读取真实聊天，使用已经授权的 gotd/cli tg 会话，不新增 Telegram 客户端。

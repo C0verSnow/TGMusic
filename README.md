@@ -2,7 +2,7 @@
 
 把一个 YouTube Music 账号的收藏或指定歌单中的新增歌曲发到 Telegram 私聊或已授权群组。GitHub Actions 负责浏览器和音频处理，Cloudflare D1 保存发送状态，私有 R2 保存加密登录档案，Cloudflare Worker 接收指令，Infisical Cloud 管理密钥。
 
-每个聊天分别核对成功发送记录，补发歌单中未发送的歌曲；旧的首次基线不再跳过。目标默认优先音频，但只有 `AUDIO_AUTHORIZED_VIDEO_IDS` 明确列出的、允许下载和重新分发的歌曲才会尝试获取文件，其余发送原链接。链接和音频在历史中分别记录。
+每个聊天分别核对发送记录，音频目标补发完整歌单中缺少的音频，包括旧基线和以前只发过链接的歌曲。下载和发送至少间隔 30 秒；每轮结束后自动续跑，直到发完。下载失败保留待重试，不用链接充当音频成功；明确设为 link 的目标仍发原链接。
 
 实现来自 [Issue #1](https://github.com/C0verSnow/TGMusic/issues/1) 的最新整合需求和随笔。参考项目、选择原因与已知限制见 [设计说明](docs/design.md)，逐项验收见 [验收清单](docs/acceptance.md)。
 
@@ -19,7 +19,10 @@ flowchart LR
   G --> H[R2 回执 + D1 逐首保存]
   H --> I[更新 R2 和仓库 docs/latest.md]
   I --> J[退出浏览器后加密备份]
-  J --> K[无未发送歌曲才回复同步完成]
+  J --> K{还有待发送歌曲？}
+  K -->|有进展且无失败| A
+  K -->|全部发完| L[回复同步完成]
+  K -->|失败或待核对| M[停止续跑并报告]
 ```
 
 ## 首次部署
@@ -119,9 +122,9 @@ Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 
 
 cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram `/sync` 或 Actions 手动运行会立即请求额外的一次同步，不改变固定定时时刻。GitHub cron 使用 UTC，夏令时只会改变当地显示时间。旧的 `SYNC_INTERVAL_MINUTES` 不再使用，可从 Infisical 移除；调度以 `.github/workflows/sync.yml` 为准。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
 
-工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。同步 job 使用短期 `GITHUB_TOKEN` 的 `contents: write`，仅自动提交 `docs/latest.md` 到当前运行分支；CI 仍为 `contents: read`。同步任务 30 分钟超时，同一并发组不取消正在进行的任务。
+工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。同步 job 使用短期 `GITHUB_TOKEN` 的 `contents: write`，自动提交 `docs/latest.md` 到当前运行分支，并使用 `actions: write` 排队下一轮；CI 仍为 `contents: read`。同步任务每轮 30 分钟超时，发送阶段最多 20 分钟；同一并发组串行执行，`queue: max` 保留已排队的同步。
 
-音频回退为链接时，可在 Run workflow 选择 `operation=check-audio`，填写已在 `AUDIO_AUTHORIZED_VIDEO_IDS` 授权的 `video_id`。它在远端恢复真实档案并调用正式音频解析、下载与转码，只输出正式解析是否成功、音频格式和文件大小，不发送消息、不修改歌曲历史，也不上传登录档案。检查失败与正常同步的链接回退要分开看。
+音频获取失败时，可在 Run workflow 选择 `operation=check-audio`，填写当前配置歌单中的 `video_id`。它在远端恢复真实档案并调用正式音频解析、下载与转码，只输出正式解析是否成功、音频格式和文件大小，不发送消息、不修改歌曲历史，也不上传登录档案。检查失败不会被算作音频发送成功。
 
 ### 5. 部署 Worker
 
@@ -165,13 +168,13 @@ python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 
 ## 发送、失败与恢复
 
-- D1 主键是 `(chat_id, video_id)`。只有 `sent` 算已发送，保留实际 `delivery_mode=audio|link`、Telegram message_id 和发送时间。旧 `baseline` 算未发送，会逐次补发；新目标首次也补发。`INITIAL_SYNC_MODE` 的旧值仍兼容读取，但不再让 baseline 跳过发送。
+- D1 主键是 `(chat_id, video_id)`。按目标模式核对：`audio` 目标只有 `sent/audio` 才完成，旧 `sent/link` 会补发音频；`link` 目标保留已有发送去重。保留实际 `delivery_mode=audio|link`、Telegram message_id 和发送时间。旧 `baseline` 算未发送，会逐次补发；新目标首次也补发。`INITIAL_SYNC_MODE` 的旧值仍兼容读取，但不再让 baseline 跳过发送。
 - [歌曲清单](docs/latest.md) 由正式 D1 记录和本次完整歌单自动生成，列出每个聊天的已发送、未发送、发送失败与待核对歌曲，以及是否在本次歌单中；未核对的其他聊天保留原记录并明确标注。本轮不在歌单里的旧成功记录仍保留，防止重新收藏后重复发送。
-- `/sync` 先回复“已请求”，Runner 补发、保存回执与 D1、更新 R2 副本和仓库 `docs/latest.md`、备份登录档案后，才回原聊天报告结果。歌单全部已发送才显示“同步完成”；失败、待核对、无启用目标、达到 `SYNC_MAX_SONGS`（默认每轮最多 20 次发送）或 20 分钟发送时限时，显示尚未完成，继续 `/sync` 只处理剩余项。定时或 Actions 手动运行没有指定回执聊天时通知 Owner。
+- `/sync` 先回复“已请求”，Runner 补发、保存回执与 D1、更新 R2 副本和仓库 `docs/latest.md`、备份登录档案后，才回原聊天报告结果。歌单全部已发送才显示“同步完成”；达到 `SYNC_MAX_SONGS`（默认每轮最多 20 首处理尝试）或 20 分钟发送时限、且本轮有进展而没有失败/待核对/暂停目标时，自动排队同一分支、同一目标范围和回执聊天的下一轮，无需再次 `/sync`。失败、待核对、无启用目标或没有进展时停止自动续跑，显示尚未完成；排除问题后再 `/sync`。续跑的每一轮都会重新核对完整歌单，直到无剩余。定时或 Actions 手动运行没有指定回执聊天时通知 Owner。
 - `docs/latest.md` 自动写入当前运行分支：review 前手动运行 feature 分支不会修改 main；合并后 `/sync` 和定时运行 main。GitHub 发布失败时不记成功，重跑会根据 D1 跳过已发歌曲。清单是发送记录的展示，不从 Markdown 反向恢复或覆盖 D1。Bot API 不能拉取任意旧聊天历史，也无法发现用户后来删除消息。
-- 单首歌曲或单个目标被 Telegram 明确拒绝时记 failed，继续其他歌曲；以后重试。429 按 retry_after 重试，最多三次，单次等待不超过 60 秒。
+- 单首歌曲或单个目标被 Telegram 明确拒绝时记 failed，继续其他歌曲；以后重试。所有 Runner Telegram 请求（含重试和结果通知）至少间隔 30 秒；429 等待 `max(30, retry_after)`，不截短服务器要求的等待，最多三次尝试。仍被限流则停止本轮余下发送，不自动续跑。歌曲下载尝试之间也至少等待 30 秒，失败同样计入间隔。
 - 建连超时确认尚未发送时最多重试三次；响应超时和 Telegram 5xx 可能发生在服务器已经收下消息之后，不能盲目重发，保留 pending 并提醒 Owner。
-- 成功后先在 R2 写逐首回执，再写 D1。D1 写失败时，下次读取回执补齐状态，不再次发送。R2 回执也写失败则保留 pending 等人工核对。
+- 成功后先在 R2 写逐首回执，再写 D1。D1 写失败时，下次读取回执补齐状态，不再次发送。旧链接补音频使用原回执的 ETag 条件更新，旧 link 回执不能把音频的 pending 冒充为已完成。R2 回执也写失败则保留 pending 等人工核对。
 - 人工确认 Telegram 已收到，填真实 message_id 和实际发送类型：
 
   ```sh
@@ -194,7 +197,7 @@ Telegram Bot API 不提供任意聊天历史查询，无法承诺跨 Telegram �
 
 进入代理模式后，Python 请求和 Chromium 都固定使用本机代理端口；Mihomo 掉线会请求失败，不回退直连。配置文件权限 0600，退出删除，节点及控制器密钥不输出日志。`MIHOMO_CONTROLLER_URL` 必须与 YAML 匹配，TUN 网卡名默认 Meta，可在 YAML `tun.device` 指定。
 
-收藏优先使用浏览器凭据 + Innertube browse 分页，接口不兼容时才尝试 ytmusicapi。音源由锁定版本的 yt-dlp 解析和下载，复用已恢复浏览器的 YouTube 域 Cookie 与 User-Agent，Node 22 执行固定 EJS 播放器脚本。下载和转换都保留 49 MB 限制；启用 Mihomo 时下载器同样固定走代理，代理失败不改成直连。无法正常访问、需要人工验证、格式缺失或下载失败时回退链接，不填写验证码、不解密 DRM、不自动下载额外远程组件。文件使用 FFmpeg 实际转换成 MP3/M4A，限制 49 MB，超限回退链接。FLAC 不伪装成 MP3，当前不作为 sendAudio 播放器格式。
+收藏优先使用浏览器凭据 + Innertube browse 分页，接口不兼容时才尝试 ytmusicapi。音频目标按 `YOUTUBE_PLAYLIST_ID` 对应的完整歌单处理，旧的测试歌曲名单 `AUDIO_AUTHORIZED_VIDEO_IDS` 已停用，不再让其他歌曲静默变成链接。音源由锁定版本的 yt-dlp 解析和下载，复用已恢复浏览器的 YouTube 域 Cookie 与 User-Agent，Node 22 执行固定 EJS 播放器脚本。下载和转换都保留 49 MB 限制；启用 Mihomo 时下载器同样固定走代理，代理失败不改成直连。音频目标无法正常访问、需要人工验证、格式缺失或下载失败时记失败，留待下次重试，不另发链接，不填写验证码、不解密 DRM、不自动下载额外远程组件。文件使用 FFmpeg 实际转换成 MP3/M4A，限制 49 MB，超限同样记失败。FLAC 不伪装成 MP3，当前不作为 sendAudio 播放器格式。
 
 ## 密钥轮换
 

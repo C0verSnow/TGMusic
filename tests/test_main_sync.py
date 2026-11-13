@@ -40,6 +40,7 @@ class MainSyncTests(unittest.TestCase):
                             ('load_collection', (object(), self.songs))]:
             self.stack.enter_context(patch('main.' + name, return_value=value))
         self.publish = self.stack.enter_context(patch('main.publish_latest'))
+        self.queue = self.stack.enter_context(patch('main.queue_next_sync', return_value=False))
 
     def test_scheduled_and_manual_runs_backfill_baseline_then_do_not_repeat(self):
         for event in ['schedule', 'workflow_dispatch']:
@@ -102,3 +103,45 @@ class MainSyncTests(unittest.TestCase):
         self.assertEqual(main(), 1)
         self.assertEqual(self.sender.sent, [])
         self.assertIn('同步尚未完成', self.sender.notify.call_args.args[1])
+
+    def test_budget_automatically_queues_next_batch_after_backup_then_completes(self):
+        self.config.sync_max_songs = 1
+        self.config.sync_reply_chat_id = -100
+        self.config.sync_target_chat_ids = frozenset({123})
+        order = []
+        self.publish.side_effect = lambda data: order.append('published')
+        self.browser.backup.side_effect = lambda: order.append('backed_up')
+        self.queue.side_effect = lambda config: order.append('queued') or True
+        self.assertEqual(main(), 0)
+        self.assertEqual(order, ['published', 'backed_up', 'queued'])
+        self.queue.assert_called_once_with(self.config)
+        self.assertIn('自动继续', self.sender.notify.call_args.args[1])
+        self.assertNotIn('同步完成', self.sender.notify.call_args.args[1])
+        self.assertEqual(self.sender.notify.call_args.args[0], -100)
+        self.assertEqual(self.db.query('SELECT lease_until FROM installation')[0]['lease_until'], 0)
+        self.queue.reset_mock()
+        self.assertEqual(main(), 0)
+        self.queue.assert_not_called()
+        self.assertIn('同步完成', self.sender.notify.call_args.args[1])
+        self.assertEqual(len(self.sender.sent), 2)
+
+    def test_failures_uncertainty_or_no_progress_do_not_automatically_loop(self):
+        self.sender.rejected.add((123, self.songs[1].video_id))
+        self.assertEqual(main(), 1)
+        self.queue.assert_not_called()
+        self.sender.rejected.clear()
+        self.sender.uncertain.add((123, self.songs[1].video_id))
+        self.assertEqual(main(), 1)
+        self.queue.assert_not_called()
+        self.assertEqual(main(), 1)
+        self.queue.assert_not_called()
+
+    def test_failed_continuation_keeps_delivery_records_and_does_not_claim_completion(self):
+        self.config.sync_max_songs = 1
+        self.queue.side_effect = StorageError('dispatch failed')
+        self.assertEqual(main(), 1)
+        self.assertEqual(len(self.sender.sent), 1)
+        self.assertNotIn('同步完成', self.sender.notify.call_args.args[1])
+        self.queue.side_effect = None
+        self.assertEqual(main(), 0)
+        self.assertEqual(len(self.sender.sent), 2)

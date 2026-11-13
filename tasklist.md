@@ -1,12 +1,22 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
 ## 想做：
+- [1794578876] PR #10 等用户 review；合并后正式 /sync 会按本次配置歌单补音频并自动续跑。生产全歌单批量发送与真实多轮发完未在 review 前执行。
 - [1794576054] PR #8 等用户 review；合并后同步逻辑会按预算补发旧 baseline。正式 Worker 需更新才能把同步结果送回发指令的聊天，部署与真实补发不在本轮自动执行。
 - [1794570421] Issue #5 的 PR #6 交用户 review；合并后将 TGMUSIC_ENABLED=true，启用六小时定时。交付前 Worker 恢复指向 main，不依赖临时功能分支；不擅自合并。
 
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794579099] 收尾文档 5a74283 的 push CI 43439834401 全部通过；PR CI 43439847821 仅原有浏览器归档测试在启动 Chromium 时出现 BrowserConnectError，其余 73 项通过。已只重跑失败任务，未修改浏览器代码或扩大本轮范围；正式实现 300b5d7 的两路 CI 均已通过。
+- [1794578876] Issue #9 已完成并按要求关闭，PR #10 已转待用户 review、未合并。300b5d7 的 push CI 43439202594 与 PR CI 43439211567 均通过：Python 74、Worker 8、Worker 打包，push 另通过 Docker 浏览器；真实 check-audio 43438856028 为原链接歌曲生成 6,248,493 字节 MP3。已实现全歌单音频、旧 link 补音频、至少 30 秒间隔、完整 retry_after 和无失败时自动分轮续跑；更新 README、设计与验收记录。GitHub 已检索比较 python-telegram-bot/aiogram，未进行本地构建、编译、测试或生产批量补发。
+- [1794577995] 开始 Issue #9：已读取正文、评论和指定 Runner 日志，20 次发送均为 link、间隔约 2 秒；在 feature/issue-9-audio-pacing 分支定位音频门槛和限速，保留原有未提交任务记录，不在本地编译或运行测试。
+- [1794578628] 已创建 PR #10；修复后首轮远端 CI 的 75 项仅有一项旧测试仍断言“空名单禁止音频”，其余音频升级、30 秒间隔、长 retry_after、回执恢复和续跑用例通过。移除这项已废弃断言，正式下载器已有空名单/旧样例名单均能下载歌单音频的真实 HTTP/FFmpeg 回归；真实 check-audio 43438856028 仍在运行。
+- [1794578270] 已只读核对生产配置：两个目标都是 audio，AUDIO_AUTHORIZED_VIDEO_IDS 只有 gHk8MIx6nfY，导致其他歌曲下载前就被跳过；已把音频补发、限流和回执恢复回归用例推送到现有远端 CI。用户已选择一次 /sync 后分轮自动续发，直到发完。
+- [1794577510] 用户指定的 action token 替换已完成：TGMusic prod /tgmusic/cloudflare-worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN、LearnWords dev / 的 GITHUB_TOKEN 均已更新；两个仓库现有机器身份回读都与 1/1.md 指定值一致。新令牌读取两个 GitHub Actions 工作流列表均返回 HTTP 200，未真实触发任务。本轮只改 Infisical 对应两项与任务日志，不输出令牌；未检索同类开源实现，未进行本地构建、编译或测试。
+- [1794577389] 按用户要求，将 Infisical 中本仓库的 GitHub Actions 触发令牌统一替换为 1/1.md 的 action token；先检查新令牌能读取两个仓库，再更新并回读核对，不输出令牌，不进行本地编译。
+- [1794577481] 已将 Infisical prod /tgmusic/cloudflare-worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN 替换为用户指定 1/1.md 的 action token；新令牌读取本仓库 GitHub 工作流返回 HTTP 200，正在回读核对，不记录令牌内容。
+- [1794577292] 已只读确认 Infisical Example Project 的 prod /tgmusic/cloudflare-worker 存在非空 GITHUB_WORKFLOW_TRIGGER_TOKEN，为细粒度 PAT；/tgmusic/github-actions 未存 GitHub Token。用该令牌读取 GitHub 工作流返回 HTTP 200，sync.yml 为 active；没有触发任务或改云端配置。与 LearnWords 的令牌不同。已读取 GitHub 现有工作流，未检索同类开源实现（本次仅核查配置）；未进行本地构建、编译或测试，不记录令牌值。
 - [1794576054] Issue #7 已完成并按要求关闭；PR #8 保持 open 待用户 review，未合并或部署。实现 c5070ad 的 push CI 43432415608 与 PR CI 43432426945 全通过：Python 58、Worker 8、Worker 打包，push 另通过 Docker 浏览器。已实现按聊天补发旧 baseline，生成并自动发布 docs/latest.md，只有无剩余且文档发布、备份成功才报告完成；初版清单来自真实 D1 只读导出。本轮 GitHub 已检索比较 python-telegram-bot/aiogram，未进行本地编译、构建或测试，未触发真实歌曲补发。
 - [1794570635] Issue #5 已按用户要求关闭；PR #6 已转待 review，未合并。真实音频、用户播放、两次去重、Worker / Webhook / 自动 Secret Sync 与功能 CI 已通过，收尾文档 79950de 继续由现有远端 CI 检查。Worker 指向 main，TGMUSIC_ENABLED=false，六小时定时和新下载器待 review 合并后生效；README、设计、研究与验收记录均已更新。本轮 GitHub 已检索同类项目，未进行本地编译验证。
 

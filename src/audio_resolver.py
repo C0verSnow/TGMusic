@@ -7,6 +7,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
 from models import SyncError
+from utils import RequestPacer
 
 MAX_AUDIO_BYTES = 49_000_000
 
@@ -16,16 +17,18 @@ class AudioResolver:
         self.youtube = youtube
         self.session = session
         self.config = config
+        self.pacer = RequestPacer()
 
     def resolve(self, song, directory):
-        if song.video_id not in self.config.audio_authorized_video_ids:
-            return None
+        self.pacer.wait()
         try:
             source = self.download(song, directory)
             return self.convert(source, directory, song.video_id) if source else None
         except (DownloadError, SyncError, subprocess.SubprocessError, OSError):
-            logging.warning("Audio unavailable; falling back to original link")
+            logging.warning("Audio unavailable; keep song for retry instead of sending a link")
             return None
+        finally:
+            self.pacer.defer()
 
     def download(self, song, directory):
         options = {

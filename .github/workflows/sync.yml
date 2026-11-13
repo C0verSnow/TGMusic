@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'sync sends new songs; bootstrap initializes once; check-audio inspects an authorized sample'
+        description: 'sync sends playlist audio and continues in batches; bootstrap initializes once; check-audio inspects a playlist sample'
         type: choice
         options:
           - sync
@@ -13,7 +13,7 @@ on:
           - check-audio
         default: sync
       video_id:
-        description: 'check-audio only: video ID already authorized in Infisical; does not send messages'
+        description: 'check-audio only: video ID from the configured playlist; does not send messages'
         required: false
         default: ''
       target_chat_ids:
@@ -29,10 +29,12 @@ permissions:
 concurrency:
   group: youtube-music-sync
   cancel-in-progress: false
+  queue: max
 jobs:
   sync:
     permissions:
       contents: write
+      actions: write
     if: github.event_name == 'workflow_dispatch' || vars.TGMUSIC_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30

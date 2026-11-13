@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 
 
@@ -27,3 +28,17 @@ def mask_actions_secrets():
 
 def safe_label(text):
     return re.sub(r"[\r\n\x00-\x1f]", " ", text)[:100]
+
+
+class RequestPacer:
+    def __init__(self, sleep=time.sleep):
+        self.sleep = sleep
+        self.not_before = 0
+
+    def wait(self):
+        delay = self.not_before - time.monotonic()
+        if delay > 0:
+            self.sleep(delay)
+
+    def defer(self, seconds=30):
+        self.not_before = max(self.not_before, time.monotonic() + seconds)

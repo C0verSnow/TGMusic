@@ -3,16 +3,18 @@ import time
 import requests
 
 from models import SendRejected, SendUncertain
+from utils import RequestPacer
 
 
 class TelegramBot:
     def __init__(self, token, session=None, sleep=time.sleep):
         self.url = f"https://api.telegram.org/bot{token}/"
         self.session = session or requests.Session()
-        self.sleep = sleep
+        self.pacer = RequestPacer(sleep)
 
     def call(self, method, data, files=None):
         for attempt in range(3):
+            self.pacer.wait()
             if files:
                 for value in files.values():
                     value.seek(0)
@@ -21,21 +23,21 @@ class TelegramBot:
                 result = response.json()
             except requests.ConnectTimeout:
                 if attempt < 2:
-                    self.sleep(attempt + 1)
                     continue
                 raise SendRejected("Telegram connection timed out before sending") from None
             except (requests.RequestException, ValueError):
                 # A timeout can happen after Telegram accepted the message. Hold for reconciliation.
                 raise SendUncertain("Telegram result unknown; pending record held for review") from None
+            finally:
+                self.pacer.defer()
             if result.get("ok"):
                 return result["result"]
             code = result.get("error_code", response.status_code)
-            if code == 429 and attempt < 2:
+            if code == 429:
                 delay = int(result.get("parameters", {}).get("retry_after", 1))
-                if delay > 60:
-                    raise SendRejected("Telegram rate limit exceeds this run's retry budget")
-                self.sleep(max(1, delay))
-                continue
+                self.pacer.defer(max(30, delay))
+                if attempt < 2:
+                    continue
             if code >= 500:
                 raise SendUncertain("Telegram server result unknown; pending record held for review")
             raise SendRejected(f"Telegram rejected request (code {code})", code=code)

@@ -22,7 +22,6 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.telegram_bot_token, 'telegram')
         self.assertEqual(config.profile_encryption_key, 'encryption')
         self.assertEqual(config.cloudflare_api_token, 'cloudflare')
-        self.assertEqual(config.audio_authorized_video_ids, frozenset())
         self.assertEqual(config.mihomo_enabled, 'auto')
         self.assertFalse(config.browser_headless)
         self.assertEqual(config.initial_sync_mode, 'all')
