@@ -96,6 +96,11 @@ class BrowserSession:
             count = sum(c["name"] in {"SID", "HSID", "SSID", "SAPISID", "APISID", "__Secure-3PAPISID"}
                         for c in cookies)
             logging.warning("[DEBUG-issue3] Browser auth context=%s; loaded auth cookie count=%d", context, count)
+            import time
+            time.sleep(5)
+            logging.warning("[DEBUG-issue3] Auth after waiting=%s", detect_auth(self.page))
+            self.page.refresh()
+            logging.warning("[DEBUG-issue3] Auth after reload=%s", detect_auth(self.page))
         return self.auth_state
 
     def close(self):
