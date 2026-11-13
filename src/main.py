@@ -44,31 +44,10 @@ def main():
         r2 = R2(config, network.proxy_url)
         browser.r2 = r2
         browser.proxy_url = network.proxy_url
-        browser.start()
-        auth = browser.detect_auth()
-        if auth != "VALID":
-            if auth == "EXPIRED":
-                history.set_auth(auth)
-                telegram.notify(config.telegram_owner_id, "TGMusic: Google 登录已失效，请重新导入登录档案。旧档案和历史已保留。")
-            raise SyncError("Google auth " + auth + "; sync stopped")
-        youtube = YouTubeClient(browser.page, session)
-        try:
-            songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
-        except CollectionError:
-            if network.proxy_url or config.mihomo_enabled != "auto":
-                raise
-            logging.warning("YouTube API blocked or unavailable on direct exit; trying Mihomo")
-            network.enable_proxy()
-            browser.close()
-            browser.proxy_url = network.proxy_url
-            browser.r2 = r2 = R2(config, network.proxy_url)
-            browser.start()
-            if browser.detect_auth() != "VALID":
-                raise SyncError("Google auth not valid after switching exit; backup preserved")
-            youtube = YouTubeClient(browser.page, session)
-            songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
+        youtube, songs = load_collection(config, browser, network, history)
+        r2 = browser.r2
         logging.info("Fetched %d YouTube Music songs", len(songs))
-        history.set_auth(auth)
+        history.set_auth("VALID")
         resolver = AudioResolver(youtube, session, config)
         summary = sync_targets(history, r2, telegram, resolver, songs, config, time.monotonic() + 1200,
                                target_chat_ids=config.sync_target_chat_ids)
@@ -80,7 +59,7 @@ def main():
         if config.sync_target_chat_ids is None:
             history.completed()
         if summary["held"] or summary["failed"]:
-            telegram.notify(config.telegram_owner_id, f"TGMusic: {summary['failed']} 项失败，{summary['held']} 项结果待核对。请查看 Actions 日志。")
+            telegram.notify(config.telegram_owner_id, f"TGMusic: {summary['failed']} 项失败，{summary['held']} 项结果待核对；暂停目标：{summary['paused']}。请查看 Actions 日志。")
             return 1
         return 0
     except Exception as error:
@@ -94,7 +73,7 @@ def main():
     finally:
         if browser:
             try:
-                browser.close()
+                browser.cleanup()
             except Exception:
                 logging.error("Browser cleanup failed; no profile uploaded")
         if history and leased:
@@ -103,6 +82,48 @@ def main():
             except Exception:
                 logging.error("Lease release failed; will expire automatically")
         network.close()
+
+
+def load_collection(config, browser, network, history):
+    browser.start()
+    state = browser.detect_auth()
+    if state == "UNKNOWN" and can_use_fallback(config, network):
+        logging.warning("Browser auth could not be determined on direct exit; trying Mihomo")
+        switch_browser_exit(config, browser, network)
+        state = browser.detect_auth()
+    require_valid_auth(state, history)
+    youtube = YouTubeClient(browser.page, network.session)
+    try:
+        songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
+    except CollectionError:
+        if not can_use_fallback(config, network):
+            raise
+        logging.warning("YouTube API unavailable on direct exit; trying Mihomo")
+        switch_browser_exit(config, browser, network)
+        require_valid_auth(browser.detect_auth(), history)
+        youtube = YouTubeClient(browser.page, network.session)
+        songs = youtube.songs(config.youtube_playlist_id, config.youtube_reader)
+    return youtube, songs
+
+
+def can_use_fallback(config, network):
+    return not network.proxy_url and config.mihomo_enabled == "auto"
+
+
+def switch_browser_exit(config, browser, network):
+    browser.close()
+    network.enable_proxy()
+    browser.proxy_url = network.proxy_url
+    browser.r2 = R2(config, network.proxy_url)
+    browser.start()
+
+
+def require_valid_auth(state, history):
+    if state == "VALID":
+        return
+    if state == "EXPIRED":
+        history.set_auth(state)
+    raise SyncError("Google auth " + state + "; sync stopped; existing backup preserved")
 
 
 def is_manual():

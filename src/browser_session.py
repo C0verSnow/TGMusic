@@ -1,6 +1,7 @@
 import hashlib
 import io
 import logging
+import shutil
 import tarfile
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -17,6 +18,7 @@ class BrowserSession:
         self.etag = None
         self.digest = None
         self.auth_state = "UNKNOWN"
+        self.restored_directory = False
         try:
             self.cipher = Fernet(config.profile_encryption_key.encode())
         except ValueError:
@@ -36,6 +38,7 @@ class BrowserSession:
         if destination.exists() and any(destination.iterdir()):
             raise SyncError("Restore requires an empty dedicated browser directory")
         destination.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.restored_directory = True
         with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
             archive.extractall(destination, filter="data")
         self.digest = profile_digest(destination)
@@ -73,6 +76,12 @@ class BrowserSession:
         if self.page is not None:
             self.page.quit()
             self.page = None
+
+    def cleanup(self):
+        self.close()
+        if self.restored_directory:
+            shutil.rmtree(self.config.browser_user_data_path)
+            self.restored_directory = False
 
     def backup(self):
         if self.page is not None or self.auth_state != "VALID":

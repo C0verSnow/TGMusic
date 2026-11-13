@@ -144,3 +144,20 @@ class SyncTests(unittest.TestCase):
                               self.songs[:3], self.config, target_chat_ids={-100})
         self.assertEqual(self.sender.sent, [(-100, 'C' * 11)])
         self.assertNotIn('C' * 11, self.history.records(123))
+
+    def test_forbidden_target_is_paused_and_does_not_starve_other_targets(self):
+        self.db.query("UPDATE targets SET initial_mode='all' WHERE chat_id=123")
+        self.target(-100, 'all')
+        parent = self.sender
+        class ForbiddenGroup:
+            def send_song(self, chat_id, song, audio):
+                if chat_id == -100:
+                    raise SendRejected('Telegram denied access', code=403)
+                return parent.send_song(chat_id, song, audio)
+        self.sender = ForbiddenGroup()
+        self.config.sync_max_songs = 1
+        first = self.run_sync(self.songs[:1])
+        self.assertEqual(first['paused'], [-100])
+        self.assertEqual(self.db.query('SELECT enabled FROM targets WHERE chat_id=-100')[0]['enabled'], 0)
+        self.run_sync(self.songs[:1])
+        self.assertEqual(parent.sent, [(123, 'A' * 11)])

@@ -38,7 +38,7 @@ class TelegramBot:
                 continue
             if code >= 500:
                 raise SendUncertain("Telegram server result unknown; pending record held for review")
-            raise SendRejected(f"Telegram rejected request (code {code})")
+            raise SendRejected(f"Telegram rejected request (code {code})", code=code)
         raise SendRejected("Telegram retry budget exhausted")
 
     def send_song(self, chat_id, song, audio=None):

@@ -9,7 +9,7 @@ from utils import safe_label
 
 
 def sync_targets(history, r2, telegram, resolver, songs, config, deadline=None, target_chat_ids=None):
-    summary = {"total": len(songs), "already_sent": 0, "new": 0, "success": 0, "failed": 0, "held": 0}
+    summary = {"total": len(songs), "already_sent": 0, "new": 0, "success": 0, "failed": 0, "held": 0, "paused": []}
     budget = config.sync_max_songs
     for target in history.targets():
         chat_id = target["chat_id"]
@@ -49,6 +49,11 @@ def sync_targets(history, r2, telegram, resolver, songs, config, deadline=None, 
                     history.failed(chat_id, song.video_id, str(error))
                     summary["failed"] += 1
                     logging.error("%s", error)
+                    if error.code == 403:
+                        history.pause_target(chat_id)
+                        summary["paused"].append(chat_id)
+                        logging.error("Target %s paused after Telegram denied access; restore access and /enable", chat_id)
+                        break
                     continue
                 except SendUncertain:
                     summary["held"] += 1

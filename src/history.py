@@ -37,6 +37,9 @@ class History:
     def targets(self):
         return self.db.query("SELECT * FROM targets WHERE enabled=1 AND removed=0 ORDER BY chat_id")
 
+    def pause_target(self, chat_id):
+        self.db.query("UPDATE targets SET enabled=0 WHERE chat_id=?", (chat_id,))
+
     def records(self, chat_id):
         rows = self.db.query("SELECT * FROM history WHERE chat_id=?", (chat_id,))
         expected = self.db.query("SELECT history_count FROM targets WHERE chat_id=?", (chat_id,))[0]
