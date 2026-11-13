@@ -95,6 +95,8 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794575849] 首轮实现 996d60c 的远端 push CI 43431946530 全通过：Python 57、Worker 8、Worker 打包、Docker 浏览器；PR #8 可正常合并但继续留待用户 review。补充“本次歌单”列与真实 D1 自动生成清单，等待最终分支远端 CI；不触发真实发送。
+
 - [1794575807] PR #8 已创建，保留待 review，不合并。首轮远端 Python 和 Docker 浏览器步骤通过；静态复查补充“本次歌单”列与移出歌单回归，避免旧未发送记录误导本轮完成状态；已从真实 D1 重新只读生成清单，准备推送收尾改动。未进行本地编译或测试。
 
 - [1794575658] 通过本仓库 .env 的 Infisical 启动配置，只读查询真实 D1，调用正式 History.export 生成 docs/latest.md，标注本次未核对歌单；没有发消息或修改生产历史。删除旧根目录空 latest.md。已完成 Python AST 和差异静态检查，准备推送 feature 分支，由现有远端 CI 执行测试。GitHub 已比较 python-telegram-bot 与 aiogram，链接与限制写入 docs/design.md。

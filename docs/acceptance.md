@@ -170,4 +170,4 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 - 真实 HTTP 夹具调用正式 requests 发布代码：首次创建、运行分支、已有 SHA 更新、内容不变不提交、403/409 不强推、缺 Token/tag 拒绝。
 - Worker 指令回归：私聊/群组/Admin 的发送范围与结果回执聊天传入 Actions；“已请求”不冒充“同步完成”。
 
-远端 CI 结果待补。没有执行本地测试、构建、编译或冒烟脚本。本轮没有部署 feature Worker、没有触发真实补发或修改生产发送记录；PR 合并后正式 /sync 才会执行新逻辑。
+首轮实现 `996d60c` 的 [push CI 43431946530](https://github.com/C0verSnow/TGMusic/actions/runs/43431946530) 已全部通过：Python 57 项、Worker 8 项、Worker 远端打包、预构建 Docker 浏览器。后续补充本次歌单列与移出歌单回归，最终分支 CI 继续执行。没有执行本地测试、构建、编译或冒烟脚本。本轮没有部署 feature Worker、没有触发真实补发或修改生产发送记录；PR 合并后正式 /sync 才会执行新逻辑。
