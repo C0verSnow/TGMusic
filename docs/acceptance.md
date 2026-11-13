@@ -31,11 +31,11 @@
 | AT-24 存储失败保留数据 | receipt 恢复、历史丢失拒绝发送、租约、档案完整性与 S3 ETag 冲突测试通过 |
 | AT-25 Webhook Secret | Worker `webhook rejects missing/wrong secret...` |
 | AT-26 触发 Actions | Worker `owner dispatches once...`；真实细粒度触发 Token 待配置 |
-| AT-27 GitHub 只存启动凭证 | sync.yml 仅引用两项 Infisical Secret；部署配置待完成 |
-| AT-28/29 Universal Auth/密钥注入 | 已核对 CLI 0.45.6 官方源码，远端已校验和安装 CLI；本机已登录 CLI 可访问专用项目，Actions 专用身份及 Runner 注入待验收 |
+| AT-27 GitHub 只存启动凭证 | 仓库已保存且只保存两项 Infisical 启动 Secret；五项定位/启用变量已写入并回读核对 |
+| AT-28/29 Universal Auth/密钥注入 | 已核对 CLI 0.45.6 官方源码，远端已校验和安装 CLI；使用用户提供的 Example Project 机器身份成功登录并逐项读回迁移配置；GitHub Runner 实际注入待验收 |
 | AT-30 YAML 配置写入 | 权限 0600、退出删除；真实 Mihomo 验收待进行 |
 | AT-31 R2/Telegram/解密密钥 | R2 凭证、加密密钥与真实档案上传/读回已通过；新 Runner 与真实音频联调待完成 |
-| AT-32/33 独立身份/跨路径隔离 | 按独立路径、独立身份/Secret Sync 部署；需实际拒绝访问证据 |
+| AT-32/33 独立身份/跨路径隔离 | 用户已改为共用 Example Project 身份；当前仅按目录分组，不再声明仓库之间具备身份隔离。Worker Secret Sync 待部署 |
 | AT-34 Infisical 失败退出 | boot 捕获认证输出并拒绝启动；真实拒绝认证待远端验收 |
 | AT-35 日志脱敏 | 第三方异常不输出原文；敏感值注册 GitHub mask，测试未使用真实凭证 |
 
@@ -51,17 +51,25 @@
 
 临时下载副本已移除，原始加密副本保留在 `.runtime/docker-login/google-profile.latest.enc`。此次是真实账号登录和真实 R2 上传验收，仍未证明新 GitHub Runner 能恢复该登录，也未验收音频发送或开启定时同步。
 
+## Infisical 目录迁移与 GitHub 启动配置
+
+用户同意后，使用原有个人 CLI 会话将 TGMusic 配置复制到 Example Project（`2ab57808-907b-4fd8-9f95-bd91e0601003`）的 prod `/tgmusic` 下，再用用户提供的现有机器身份逐项读回比较：`github-actions` 10 项、`cloudflare-worker` 3 项、`shared` 空目录，所有键值与源一致。密钥名保持不变，未增加前缀转换代码。
+
+TGMusic 本机 `.env` 已切到新项目和 `/tgmusic/github-actions`，保存机器身份启动凭据，权限为 0600 且被 Git 忽略。原 TGMusic 项目和用户提供的 `1/.env` 保留。GitHub 仓库已通过官方加密 API 保存 INFISICAL_CLIENT_ID / INFISICAL_CLIENT_SECRET，读取元数据确认名称存在；API 不支持读回 Secret 明文。四项 Infisical 定位变量和 `TGMUSIC_ENABLED=false` 已设置并回读核对。尚未开启定时或完成真实新 Runner 验收。
+
+仍缺的业务凭据为 Actions 的 CLOUDFLARE_API_TOKEN（D1）和 Worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN，不能把目录迁移成功当成整个同步服务已上线。
+
 ## 已创建的云资源
 
-- Infisical：专用项目 youtube-music-telegram-sync，prod 下 shared / github-actions / cloudflare-worker 目录。
+- Infisical：当前运行配置在 Example Project 的 prod `/tgmusic` 下；原 youtube-music-telegram-sync 项目保留为迁移前副本。
 - Cloudflare D1：tgmusic，`0001_initial.sql` 已通过 Wrangler 在远端应用。
 - Cloudflare R2：tgmusic-private，控制台确认 Public Access Disabled；用户已自行开通 R2 订阅。恢复任务后，经用户确认创建只授权此桶对象读写的专用凭证，保存并回读核对 Infisical prod `/github-actions` 的 R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY。档案加密密钥也已配置；真实登录档案已上传并完成读回核对。
 
 ## 真实部署需要完成
 
-1. 补齐 D1 API Token，并完成 R2 凭证的真实上传验收；R2 桶级对象读写凭证和档案加密密钥已保存到 Infisical。
+1. 补齐 D1 API Token 和 Worker 的 GitHub 触发 Token；R2 凭证、加密密钥、真实档案上传及读回已通过。
 2. 确认使用哪个 Telegram Bot 和 Owner/默认私聊数字 ID，目标用户先发送 `/start`。
-3. Actions 专用 Universal Auth 与 Worker Secret Sync 设置最小权限，并验证另一目录访问被拒绝。
+3. 使用已配置的共享身份完成 GitHub Runner 实际密钥注入验收，再将 Worker Secret Sync 指向 `/tgmusic/cloudflare-worker`。当前不要求验证共享身份对另一应用目录访问被拒绝。
 4. 在新的 GitHub Runner 恢复已上传的 Linux Google 登录档案，核对真实登录是否仍有效。
 5. 手动执行一次 Runner：确认实际出口、登录、列表分页、R2 解密和默认基线；新增歌曲后验证发送与再次运行不重复。
 6. 部署 Worker、注册 Webhook；测试错误 Secret、Guest、Owner/Admin、未授权群组、真实 `/sync`。

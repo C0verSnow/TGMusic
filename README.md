@@ -37,17 +37,17 @@ flowchart LR
 
 ### 2. 准备 Infisical
 
-建立专用项目 `youtube-music-telegram-sync`，保留 dev / staging / prod 环境。在 prod 建立：
+当前使用已有 **Example Project** 的机器身份，保留 dev / staging / prod 环境。在 prod 的 `/tgmusic` 下按用途建文件夹：
 
 | 目录 | 放什么 |
 |---|---|
-| `/shared` | R2_ENDPOINT、R2_BUCKET、CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_D1_DATABASE_ID |
-| `/github-actions` | 引入 shared；R2 凭证、D1 API Token、PROFILE_ENCRYPTION_KEY、Telegram Token/Owner/默认私聊 ID、浏览器及同步配置、备用 Mihomo YAML |
-| `/cloudflare-worker` | Telegram Token、Owner ID、Webhook Secret、GITHUB_WORKFLOW_TRIGGER_TOKEN |
+| `/tgmusic/shared` | 预留共享配置目录；当前运行所需定位参数直接保存在 github-actions 目录 |
+| `/tgmusic/github-actions` | R2 凭证、D1 API Token、PROFILE_ENCRYPTION_KEY、Telegram Token/Owner/默认私聊 ID、浏览器及同步配置、备用 Mihomo YAML |
+| `/tgmusic/cloudflare-worker` | Telegram Token、Owner ID、Webhook Secret、GITHUB_WORKFLOW_TRIGGER_TOKEN |
 
 完整键名见 [.env.example](.env.example)。示例文件不是实际密钥，不要提交 `.env`、浏览器目录或 Mihomo 节点配置。
 
-Actions 使用独立 Machine Identity，只允许读取 prod `/github-actions`；共享值通过目录导入注入，不给它整个项目的读取权限。Worker 使用独立的 Cloudflare Workers Secret Sync，源路径限制为 prod `/cloudflare-worker`，不复用 Actions Identity。Infisical 连接 Cloudflare 的集成凭证也应限制在本 Worker 所需权限。
+用户已选择复用 Example Project 现有的 Machine Identity，解决新增身份额度限制。TGMusic 按 `/tgmusic/github-actions` 读取，密钥名保持不变，无需添加 TGMUSIC_ 前缀或转换代码。这些文件夹用于区分应用；共用身份仍共享同一套权限，不声称仓库之间已实现权限隔离。Worker 的 Cloudflare Workers Secret Sync 源路径使用 `/tgmusic/cloudflare-worker`；Infisical 连接 Cloudflare 的集成凭证仍限制在本 Worker 所需权限。
 
 `PROFILE_ENCRYPTION_KEY` 是 Fernet 密钥，可在可信配置环境运行下面的密钥生成命令，并直接保存到 Infisical，勿贴到公共日志：
 
@@ -79,7 +79,7 @@ python src/infisical_boot.py src/manage.py login
 
 #### 在本机通过 Docker 完成人工登录
 
-macOS/Windows 可使用仓库提供的预构建 Linux Chromium，不需要在宿主系统导出 Cookie，也不需要构建 Docker 镜像。先启动 Docker，并完成 `infisical login`；仓库 `.env` 填写本项目的 `INFISICAL_PROJECT_ID`、环境和目录。程序先读取 `.env` 中的定位参数，再通过 Infisical CLI 读取 prod `/github-actions` 的 R2 配置和加密密钥。
+macOS/Windows 可使用仓库提供的预构建 Linux Chromium，不需要在宿主系统导出 Cookie，也不需要构建 Docker 镜像。先启动 Docker，并完成 `infisical login`；仓库 `.env` 填写 Example Project 的 `INFISICAL_PROJECT_ID`、环境和目录。程序先读取 `.env` 中的定位参数，再通过 Infisical CLI 读取 prod `/tgmusic/github-actions` 的 R2 配置和加密密钥。
 
 ```sh
 bash scripts/docker-login.sh --ini config/browser.ini
@@ -104,7 +104,7 @@ Repository Secrets 只保存：
 - `INFISICAL_CLIENT_ID`
 - `INFISICAL_CLIENT_SECRET`
 
-Repository Variables 设置项目 ID、环境 prod、路径 `/github-actions`、API 地址；完成初始化后才设 `TGMUSIC_ENABLED=true`。其他运行参数放 Infisical。手动执行 **YouTube Music Sync** 验收恢复、登录、列表及基线；下次新增一首歌验证发送。
+Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 `/tgmusic/github-actions`、API 地址；完成初始化后才设 `TGMUSIC_ENABLED=true`。其他运行参数放 Infisical。手动执行 **YouTube Music Sync** 验收恢复、登录、列表及基线；下次新增一首歌验证发送。
 
 cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时任务跳过，防止配置未齐就自动运行。
 
@@ -118,7 +118,7 @@ cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYN
 npx wrangler@4.45.0 deploy --config worker/wrangler.toml
 ```
 
-随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 prod `/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
+随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 prod `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
 
 在可信配置环境注入 Telegram Token 和 Webhook Secret 后注册：
 

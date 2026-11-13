@@ -28,9 +28,17 @@
 - [Cloudflare D1 binding API](https://developers.cloudflare.com/d1/worker-api/d1-database/)：Worker 使用绑定和参数化语句；Runner 使用官方 REST query。Schema 在真实 SQLite 上测试，部署仍需 D1 集成验收。
 - [Cloudflare R2 条件操作](https://developers.cloudflare.com/r2/api/s3/api/)：使用 S3 兼容接口、If-Match/If-None-Match、ETag，上传单独版本后才更新主对象。
 - [Telegram sendAudio](https://core.telegram.org/bots/api#sendaudio)：当前官方播放器格式 MP3/M4A、Bot 文件限制 50 MB；实现留余量使用 49 MB。
-- [Infisical Cloudflare Workers Secret Sync](https://infisical.com/docs/integrations/secret-syncs/cloudflare-workers)：独立目录同步 Worker Secrets；Runner 身份不读取 Worker 路径。
+- [Infisical Cloudflare Workers Secret Sync](https://infisical.com/docs/integrations/secret-syncs/cloudflare-workers)：独立目录同步 Worker Secrets；应用只请求各自目录。当前复用 Example Project 身份，身份本身不再保证 Runner 与 Worker 目录互相隔离。
 
 Infisical 0.45.6 Linux amd64 包 SHA-256 为 `b427391e76113e351fa0509d6493cb400577dec26b28afb462c2c2f9c5a37d4d`；Mihomo 1.19.34 Linux amd64-v1 包为 `0c07340a01408d033dda4088ea2a4c1e4d82aeed7b2f84f7c046e93b6ff3290c`。来源是对应官方 GitHub Release asset digest，固定在安装脚本，运行时不接受未经校验的最新包。
+
+## Infisical 共用身份的部署决定
+
+用户已选择将密钥复制到 Example Project 的 prod `/tgmusic/github-actions`、`/tgmusic/cloudflare-worker`、`/tgmusic/shared`，复用其现有项目级身份，避免新增机器身份额度阻塞。运行代码已有 `INFISICAL_PROJECT_ID` 和 `INFISICAL_SECRET_PATH` 参数，因此只修改部署定位和文档，不新增前缀映射逻辑。原项目副本保留用于回退，不删除或变更其他应用的配置。
+
+参考 [Infisical 官方 GitHub 机器身份文档](https://github.com/Infisical/infisical/blob/main/docs/documentation/platform/identities/machine-identities.mdx)和[官方文件夹说明](https://infisical.com/docs/documentation/platform/folder)：项目级身份只能访问自身项目，组织级身份才可加入多个项目；文件夹可按路径组织多个应用。当前共享身份沿用其原有权限，文件夹只防止应用取错配置，不提供仓库之间的权限隔离。这是用户对原独立身份方案的明确调整。
+
+GitHub 启动 Secrets 仍只有 INFISICAL_CLIENT_ID 和 INFISICAL_CLIENT_SECRET，使用 [GitHub 官方 REST API 加密方案](https://docs.github.com/en/rest/guides/encrypting-secrets-for-the-rest-api)和 [PyNaCl](https://github.com/pyca/pynacl) 的 libsodium sealed box 写入。配置时仅在忽略的运行目录安装预构建 wheel，不编译、不加入应用依赖；不自行实现加密协议。
 
 ## Docker 登录与上传方式
 

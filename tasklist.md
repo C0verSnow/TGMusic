@@ -4,6 +4,16 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794536457] 用户同意将 TGMusic 密钥迁入 Example Project 的独立文件夹，并指定读取 1/.env 中的 Infisical 凭据；先只读核对凭据所属项目和访问能力，再迁移和更新 GitHub 启动配置，不输出密钥，不进行本地编译。
+- [1794535913] 用户提供已有 TGMusic Infisical 项目链接，询问是否还缺配置；正在只读核对该项目的机器身份，不重复创建项目或申请权限。
+- [1794535810] 等待用户决定先腾出身份名额、处理付费额度，还是先停在登录归档完成这一步；取得名额后才能继续新 GitHub Runner 恢复和真实同步验收。
+- [1794535653] 核对下一步新 Runner 恢复所需的 Infisical 专用身份及额度；不删除、复用其他项目身份，不开启定时同步。
+- [1794537096] 已读取用户指定 1/.env 中的 Infisical 凭据，确认是 Example Project 的现有机器身份并成功登录。用原有个人 CLI 会话建立 prod /tgmusic/{github-actions,cloudflare-worker,shared}，复制 10 项 Actions 配置和 3 项 Worker 配置；shared 为空目录。再用该机器身份逐项读回核对，全部与原项目一致。
+- [1794537096] TGMusic 本机 .env 已切换到 Example Project 和 /tgmusic/github-actions，并保存启动凭据，文件权限 0600、已被 Git 忽略。用户的 1/.env 和原 TGMusic 项目保持原样，未删除其他应用配置。
+- [1794537096] 已通过 GitHub 官方 API 加密保存两项仓库启动 Secrets，读取元数据确认存在；四项 Infisical 定位变量和 TGMUSIC_ENABLED=false 已写入并回读一致。GitHub API 不能读回 Secret 明文，实际 Runner 注入还未验收。
+- [1794537096] 已在 GitHub/官方文档核对 Infisical 机器身份、文件夹路径和 GitHub Secrets 加密方式，参考链接写入 docs/design.md；仅临时安装预构建 PyNaCl wheel 进行 API 加密，未编译、未加入应用依赖，临时库已清理。运行代码不需改动，已更新配置示例、说明和验收记录。
+- [1794536230] 用户提出将 TGMusic 密钥放到 Example Project 并加名称前缀。已检索 GitHub 的 Infisical 官方机器身份文档及官方文件夹说明，确认项目级身份仅访问本项目，组织级身份可加入多个项目；并核对现有启动代码和 CLI 的 projectId/path 参数。建议复用 Example Project 现有身份，用 prod /tgmusic/github-actions 等文件夹区分仓库，保留原密钥名称，避免新增前缀转换代码。共享身份仍共用权限，文件夹只负责整理。此轮仅比较方案，未迁移密钥，未进行本地编译验证。
+- [1794535958] 按用户提供的项目链接只读核对，确认 youtube-music-telegram-sync 项目及 github-actions 密钥目录存在；项目 Access Control 的 Machine Identities 页明确显示尚未添加机器身份。已区分密钥存放项目与 Actions 自动读取密钥的登录身份，没有创建或修改权限；本轮未新增 GitHub 检索或进行本地编译。
 - [1794535810] 验收文档已推送为 0ab0f36；对应远端 PR CI 43349905599 通过。本轮只改文档和日志，没有修改归档实现，也没有进行本地构建、编译或测试。
 - [1794535810] 通过 Infisical 页面只读核对，组织仍有 4 个机器身份，分别归 LearnWords、PR_Bot 和 Example Project 使用；没有 TGMusic 专用身份。页面未显示已启用付费订阅。已向用户询问如何处理此前的身份额度阻塞，未删除或挪用其他项目身份。
 - [1794535177] 用户反馈已完成 Google 登录；Observer 实际检测到 VALID，已停止浏览器容器，正在完整归档和加密上传。接下来核对真实 R2 对象及归档内容，不进行本地编译。
@@ -58,5 +68,4 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
-- [1794535810] 等待用户决定先腾出身份名额、处理付费额度，还是先停在登录归档完成这一步；取得名额后才能继续新 GitHub Runner 恢复和真实同步验收。
-- [1794535653] 核对下一步新 Runner 恢复所需的 Infisical 专用身份及额度；不删除、复用其他项目身份，不开启定时同步。
+- [1794537096] 检查迁移文档和差异，提交后由已有远端 CI 验证；定时同步保持关闭。仍缺 D1 API Token、Worker GitHub 触发 Token和实际新 Runner/Worker 联调。
