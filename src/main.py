@@ -6,6 +6,7 @@ from audio_resolver import AudioResolver
 from browser_session import BrowserSession
 from cloudflare_storage import D1, R2
 from config import Config
+from continuation import queue_next_sync
 from history import History
 from latest_report import publish_latest
 from models import SyncError
@@ -58,6 +59,11 @@ def main():
         browser.backup()
         reply_chat_id = config.sync_reply_chat_id or config.telegram_owner_id
         unavailable = set(config.sync_target_chat_ids or ()) - set(summary["targets"])
+        if (summary["remaining"] and summary["success"] and not summary["failed"] and not summary["held"]
+                and not summary["paused"] and not unavailable and queue_next_sync(config)):
+            telegram.notify(reply_chat_id, f"本轮已发 {summary['success']} 首，剩余 {summary['remaining']} 首；"
+                            "已排队下一轮自动继续，无需再次 /sync。歌曲下载和发送至少间隔 30 秒；docs/latest.md 已更新。")
+            return 0
         if summary["remaining"] or not summary["targets"] or unavailable:
             telegram.notify(reply_chat_id, f"同步尚未完成：剩余 {summary['remaining']} 首，{summary['failed']} 项失败，"
                             f"{summary['held']} 项待核对；本次核对 {len(summary['targets'])} 个目标，"

@@ -62,6 +62,16 @@ class AudioDownloadTests(unittest.TestCase):
                                        cookies=[{'name': 'fixture', 'value': 'yes', 'domain': '127.0.0.1',
                                                  'path': '/', 'secure': False}])
         self.resolver = AudioResolver(self.youtube, self.session, self.config)
+        self.delays = []
+        self.now = 0
+        self.clock = patch('utils.time.monotonic', lambda: self.now)
+        self.clock.start()
+        self.addCleanup(self.clock.stop)
+        self.resolver.pacer.sleep = self.advance
+
+    def advance(self, delay):
+        self.delays.append(delay)
+        self.now += delay
 
     def tearDown(self):
         self.session.close()
@@ -89,11 +99,11 @@ class AudioDownloadTests(unittest.TestCase):
             self.assertIsNotNone(result)
             self.assertGreater(result.stat().st_size, 0)
 
-    def test_unauthorized_sample_never_contacts_source(self):
+    def test_empty_legacy_allowlist_does_not_block_playlist_audio(self):
         self.config.audio_authorized_video_ids = set()
         with tempfile.TemporaryDirectory() as directory:
-            self.assertIsNone(self.resolver.resolve(self.song(), directory))
-        self.assertEqual(self.requests, [])
+            self.assertIsNotNone(self.resolver.resolve(self.song(), directory))
+        self.assertTrue(self.requests)
 
     def test_rejected_source_falls_back_without_producing_audio(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -112,3 +122,9 @@ class AudioDownloadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             self.assertIsNone(self.resolver.resolve(self.song(), directory))
         self.assertEqual(self.requests, [])
+
+    def test_download_attempts_are_spaced_even_after_source_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertIsNone(self.resolver.resolve(self.song('/missing.wav'), directory))
+            self.assertIsNotNone(self.resolver.resolve(self.song(), directory))
+        self.assertEqual(self.delays, [30])

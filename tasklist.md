@@ -7,6 +7,7 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794578270] 已只读核对生产配置：两个目标都是 audio，AUDIO_AUTHORIZED_VIDEO_IDS 只有 gHk8MIx6nfY，导致其他歌曲下载前就被跳过；已把音频补发、限流和回执恢复回归用例推送到现有远端 CI。用户已选择一次 /sync 后分轮自动续发，直到发完。
 - [1794577510] 用户指定的 action token 替换已完成：TGMusic prod /tgmusic/cloudflare-worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN、LearnWords dev / 的 GITHUB_TOKEN 均已更新；两个仓库现有机器身份回读都与 1/1.md 指定值一致。新令牌读取两个 GitHub Actions 工作流列表均返回 HTTP 200，未真实触发任务。本轮只改 Infisical 对应两项与任务日志，不输出令牌；未检索同类开源实现，未进行本地构建、编译或测试。
 - [1794577389] 按用户要求，将 Infisical 中本仓库的 GitHub Actions 触发令牌统一替换为 1/1.md 的 action token；先检查新令牌能读取两个仓库，再更新并回读核对，不输出令牌，不进行本地编译。
 - [1794577481] 已将 Infisical prod /tgmusic/cloudflare-worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN 替换为用户指定 1/1.md 的 action token；新令牌读取本仓库 GitHub 工作流返回 HTTP 200，正在回读核对，不记录令牌内容。

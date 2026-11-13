@@ -28,7 +28,6 @@ class Config:
     youtube_reader: str
     initial_sync_mode: str
     sync_max_songs: int
-    audio_authorized_video_ids: frozenset
     audio_format: str
     audio_quality: str
     mihomo_enabled: str
@@ -67,7 +66,6 @@ class Config:
             os.getenv("R2_PROFILE_OBJECT", "auth/google-profile.tar.enc"),
             os.getenv("YOUTUBE_PLAYLIST_ID", "LM"), reader, mode,
             integer("SYNC_MAX_SONGS", 20, positive=True),
-            frozenset(filter(None, os.getenv("AUDIO_AUTHORIZED_VIDEO_IDS", "").split(","))),
             audio_format, quality, proxy, os.getenv("MIHOMO_CONFIG_YAML", ""),
             Path(os.getenv("MIHOMO_CONFIG_PATH", "/tmp/mihomo/config.yaml")),
             os.getenv("MIHOMO_PROXY_URL", "http://127.0.0.1:7890"),

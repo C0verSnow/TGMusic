@@ -75,7 +75,7 @@ class History:
     def export(self, songs=(), checked_chat_ids=()):
         lines = ["# Telegram 歌曲同步清单", "", "<!-- 由 History.export 自动生成，请勿手工修改。 -->", "",
                  "依据机器人发送成功记录与 Telegram 消息 ID 核对；不是完整聊天历史，也不检测消息被删除。",
-                 "只有“已发送”会跳过。旧 baseline 算未发送；待核对项目不会自动重发。", "",
+                 "音频目标只有 audio 算完成，旧 link 会补音频；旧 baseline 算未发送，待核对项目不会自动重发。", "",
                  "清单生成时间（UTC）：" + utc_now(), ""]
         labels = {"sent": "已发送", "baseline": "未发送", "pending": "待核对", "failed": "发送失败"}
         playlist_ids = {song.video_id for song in songs}
@@ -94,7 +94,8 @@ class History:
                           "| video_id | 歌曲 | 歌手 | 发送状态 | 类型 | Telegram 消息 ID | 发送时间（UTC） | 本次歌单 |",
                           "|---|---|---|---|---|---|---|---|"])
             for video_id, row in sorted(entries.items()):
-                values = (video_id, row["title"], row["artist"], labels[row["status"]],
+                values = (video_id, row["title"], row["artist"], ("待补音频" if row["status"] == "sent" and not delivery_complete(row, target["send_mode"])
+                           else labels[row["status"]]),
                           row.get("delivery_mode"), row.get("message_id"), row.get("sent_at"),
                           ("是" if video_id in playlist_ids else "否") if checked else "未核对")
                 lines.append("| " + " | ".join(markdown_cell(value) for value in values) + " |")
@@ -114,3 +115,8 @@ def receipt_key(chat_id, video_id):
 
 def receipt_data(mode, message_id):
     return {"mode": mode, "message_id": message_id, "sent_at": utc_now()}
+
+
+def delivery_complete(record, send_mode):
+    return bool(record and record['status'] == 'sent' and
+                (send_mode == 'link' or record['delivery_mode'] == 'audio'))

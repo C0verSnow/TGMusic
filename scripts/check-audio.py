@@ -1,5 +1,6 @@
-"""Inspect one authorized song on a remote Runner without sending or changing song history."""
+"""Inspect one playlist song on a remote Runner without sending or changing song history."""
 import logging
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -20,7 +21,7 @@ def main():
     configure_logging()
     mask_actions_secrets()
     config = Config.load()
-    video_id = authorized_video(config)
+    video_id = sample_video()
     history = History(D1(config))
     installation = history.installation()
     history.acquire()
@@ -37,11 +38,11 @@ def main():
         youtube, songs = load_collection(config, browser, network, history)
         song = next((song for song in songs if song.video_id == video_id), None)
         if song is None:
-            raise SyncError('Authorized sample is not in the configured playlist')
+            raise SyncError('Sample is not in the configured playlist')
         with tempfile.TemporaryDirectory(prefix='tgmusic-audio-probe-') as directory:
             output = AudioResolver(youtube, network.session, config).resolve(song, directory)
             if output is None:
-                raise SyncError('Audio probe failed: current resolver would send a link; no message sent')
+                raise SyncError('Audio probe failed: current resolver cannot produce an audio file; no message sent')
             logging.info('Audio probe passed: format=%s bytes=%d; no message sent', output.suffix, output.stat().st_size)
     finally:
         try:
@@ -52,9 +53,9 @@ def main():
             history.release()
 
 
-def authorized_video(config):
-    if len(sys.argv) != 2 or sys.argv[1] not in config.audio_authorized_video_ids:
-        raise SyncError('Pass one video ID already listed in AUDIO_AUTHORIZED_VIDEO_IDS')
+def sample_video():
+    if len(sys.argv) != 2 or not re.fullmatch(r'[A-Za-z0-9_-]{11}', sys.argv[1]):
+        raise SyncError('Pass one valid video ID from the configured playlist')
     return sys.argv[1]
 
 
