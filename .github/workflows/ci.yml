@@ -34,3 +34,26 @@ jobs:
       - run: node --test worker/tests/*.test.js
       - name: Check Worker bundle remotely
         run: npx --yes wrangler@4.45.0 deploy --dry-run --config worker/wrangler.toml
+
+  docker_browser:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect prebuilt Docker login services
+        env:
+          TGMUSIC_STATE_DIR: ${{ runner.temp }}/tgmusic-docker-login
+          TGMUSIC_INI_PATH: ${{ github.workspace }}/config/browser.ini
+        run: |
+          mkdir -p "$TGMUSIC_STATE_DIR/browser-config"
+          export TGMUSIC_UID="$(id -u)" TGMUSIC_GID="$(id -g)"
+          docker compose -f docker-compose.login.yml config --quiet
+          docker compose -f docker-compose.login.yml up -d browser
+          docker compose -f docker-compose.login.yml run --rm --no-deps observer probe
+      - name: Stop Docker login services
+        if: always()
+        env:
+          TGMUSIC_STATE_DIR: ${{ runner.temp }}/tgmusic-docker-login
+          TGMUSIC_INI_PATH: ${{ github.workspace }}/config/browser.ini
+        run: docker compose -f docker-compose.login.yml down --remove-orphans

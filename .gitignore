@@ -12,3 +12,5 @@ chrome-profile/
 config/mihomo*.yaml
 *.log
 .DS_Store
+
+.runtime/

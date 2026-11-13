@@ -1,6 +1,10 @@
 import hashlib
 import io
 import logging
+import json
+import os
+import tempfile
+from pathlib import Path
 import shutil
 import tarfile
 
@@ -19,6 +23,9 @@ class BrowserSession:
         self.digest = None
         self.auth_state = "UNKNOWN"
         self.restored_directory = False
+        self.bundle_directory = None
+        self.ini_path = Path(config.browser_ini_path)
+        self.browser_version = ""
         try:
             self.cipher = Fernet(config.profile_encryption_key.encode())
         except ValueError:
@@ -32,20 +39,31 @@ class BrowserSession:
         except InvalidToken:
             raise SyncError("Profile decryption failed; backup preserved") from None
         digest = hashlib.sha256(raw).hexdigest()
-        if metadata.get("sha256") != digest or metadata.get("schema") != "1":
+        if metadata.get("sha256") != digest or metadata.get("schema") not in {"1", "2"}:
             raise SyncError("Profile integrity/version check failed")
         destination = self.config.browser_user_data_path
         if destination.exists() and any(destination.iterdir()):
             raise SyncError("Restore requires an empty dedicated browser directory")
         destination.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.restored_directory = True
-        with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
-            archive.extractall(destination, filter="data")
-        self.digest = profile_digest(destination)
+        with tarfile.open(fileobj=io.BytesIO(raw), mode="r:*") as archive:
+            if metadata["schema"] == "1":
+                archive.extractall(destination, filter="data")
+            else:
+                self.bundle_directory = tempfile.TemporaryDirectory(prefix="tgmusic-bundle-", dir=destination.parent)
+                unpacked = Path(self.bundle_directory.name)
+                archive.extractall(unpacked, filter="data")
+                self.ini_path = unpacked / "config" / "browser.ini"
+                if not self.ini_path.is_file() or not (unpacked / "user-data").is_dir():
+                    raise SyncError("Incomplete browser bundle; backup preserved")
+                manifest = json.loads((unpacked / "manifest.json").read_text())
+                self.browser_version = manifest.get("browser_version", "")
+                os.replace(unpacked / "user-data", destination)
+        self.digest = profile_digest(destination, self.ini_path)
 
     def start(self, initial_url="https://music.youtube.com/"):
         from DrissionPage import ChromiumOptions, ChromiumPage
-        options = ChromiumOptions(ini_path=self.config.browser_ini_path)
+        options = ChromiumOptions(ini_path=str(self.ini_path))
         options.set_user_data_path(str(self.config.browser_user_data_path))
         options.set_browser_path(self.config.browser_path)
         options.headless(self.config.browser_headless)
@@ -55,20 +73,11 @@ class BrowserSession:
             options.set_proxy(self.proxy_url)
         self.page = ChromiumPage(options)
         self.page.get(initial_url)
+        self.browser_version = self.page.run_js("return navigator.userAgent")
         return self.page
 
     def detect_auth(self):
-        try:
-            data = self.page.run_js("return {url:location.href, logged:window.ytcfg?.get('LOGGED_IN'),"
-                                    " ready:!!window.ytcfg?.get('INNERTUBE_CONTEXT')};")
-            if data["ready"] and data["logged"] is True:
-                self.auth_state = "VALID"
-            elif "accounts.google.com" in data["url"] or (data["ready"] and data["logged"] is False):
-                self.auth_state = "EXPIRED"
-            else:
-                self.auth_state = "UNKNOWN"
-        except Exception:
-            self.auth_state = "UNKNOWN"
+        self.auth_state = detect_auth(self.page)
         logging.info("Google auth: %s", self.auth_state)
         return self.auth_state
 
@@ -82,45 +91,75 @@ class BrowserSession:
         if self.restored_directory:
             shutil.rmtree(self.config.browser_user_data_path)
             self.restored_directory = False
+        if self.bundle_directory:
+            self.bundle_directory.cleanup()
+            self.bundle_directory = None
 
-    def backup(self):
+    def backup(self, encrypted_copy=None):
         if self.page is not None or self.auth_state != "VALID":
             raise SyncError("Only a closed, verified profile can be backed up")
         directory = self.config.browser_user_data_path
-        digest = profile_digest(directory)
+        digest = profile_digest(directory, self.ini_path)
         if digest == self.digest:
             logging.info("Browser profile unchanged")
             return
         if not (directory / "Default" / "Cookies").exists() and not (directory / "Default" / "Network" / "Cookies").exists():
             raise SyncError("Empty profile refused; backup preserved")
-        raw = archive_profile(directory)
-        metadata = {"sha256": hashlib.sha256(raw).hexdigest(), "schema": "1", "content-sha256": digest}
-        self.etag = self.r2.versioned_put(self.config.r2_profile_object, self.cipher.encrypt(raw), self.etag, metadata)
+        raw = archive_profile(directory, self.ini_path, self.browser_version)
+        metadata = {"sha256": hashlib.sha256(raw).hexdigest(), "schema": "2", "content-sha256": digest}
+        encrypted = self.cipher.encrypt(raw)
+        if encrypted_copy is not None:
+            Path(encrypted_copy).write_bytes(encrypted)
+            Path(encrypted_copy).chmod(0o600)
+        self.etag = self.r2.versioned_put(self.config.r2_profile_object, encrypted, self.etag, metadata)
         self.digest = digest
 
 
+def detect_auth(page):
+    try:
+        data = page.run_js("return {url:location.href, logged:window.ytcfg?.get('LOGGED_IN'),"
+                           " ready:!!window.ytcfg?.get('INNERTUBE_CONTEXT')};")
+        if data["ready"] and data["logged"] is True:
+            return "VALID"
+        if "accounts.google.com" in data["url"] or (data["ready"] and data["logged"] is False):
+            return "EXPIRED"
+    except Exception:
+        pass
+    return "UNKNOWN"
+
+
 def profile_files(directory):
-    excluded = {"Cache", "Code Cache", "GPUCache", "DawnCache", "ShaderCache", "GrShaderCache",
-                "Crashpad", "BrowserMetrics", "Service Worker"}
     for path in sorted(directory.rglob("*")):
         relative = path.relative_to(directory)
-        if any(part in excluded or part.startswith("Singleton") for part in relative.parts):
+        if any(part.startswith("Singleton") or part == "DevToolsActivePort" for part in relative.parts):
             continue
-        if path.is_file() and not path.is_symlink():
-            yield path, relative
+        yield path, relative
 
 
-def profile_digest(directory):
-    digest = hashlib.sha256()
+def profile_digest(directory, ini_path):
+    digest = hashlib.sha256(Path(ini_path).read_bytes())
     for path, relative in profile_files(directory):
         digest.update(str(relative).encode() + b"\x00")
-        digest.update(hashlib.sha256(path.read_bytes()).digest())
+        if path.is_symlink():
+            digest.update(b"link:" + os.readlink(path).encode())
+        elif path.is_file():
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+        else:
+            digest.update(b"directory")
     return digest.hexdigest()
 
 
-def archive_profile(directory):
+def archive_profile(directory, ini_path, browser_version=""):
     buffer = io.BytesIO()
-    with tarfile.open(fileobj=buffer, mode="w") as archive:
+    manifest = json.dumps({"schema": 2, "browser_version": browser_version,
+                           "archive": "tar.gz", "profile": "user-data", "ini": "config/browser.ini"}).encode()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        info = tarfile.TarInfo("manifest.json")
+        info.size = len(manifest)
+        info.mode = 0o600
+        archive.addfile(info, io.BytesIO(manifest))
+        archive.add(ini_path, arcname="config/browser.ini", recursive=False)
+        archive.add(directory, arcname="user-data", recursive=False)
         for path, relative in profile_files(directory):
-            archive.add(path, arcname=str(relative), recursive=False)
+            archive.add(path, arcname="user-data/" + str(relative), recursive=False)
     return buffer.getvalue()
