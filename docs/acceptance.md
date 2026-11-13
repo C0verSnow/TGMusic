@@ -39,15 +39,19 @@
 | AT-34 Infisical 失败退出 | boot 捕获认证输出并拒绝启动；真实拒绝认证待远端验收 |
 | AT-35 日志脱敏 | 第三方异常不输出原文；敏感值注册 GitHub mask，测试未使用真实凭证 |
 
+## Docker 方案的远端验证
+
+后续代码 `85d9a05` 的 [push CI 43345179904](https://github.com/C0verSnow/TGMusic/actions/runs/43345179904) 已全部通过，包含 Docker 浏览器任务：实际启动固定摘要的 LinuxServer Chromium，验证桌面 HTTP 服务、有头浏览器及 DevTools 连接。Python 测试另覆盖完整 ini、缓存、空目录的归档恢复，以及旧档案格式读取。[PR CI 43345185486](https://github.com/C0verSnow/TGMusic/actions/runs/43345185486) 也已通过，但该事件按工作流约定跳过 Docker 任务。以上仍没有验证真实 Google 账号。
+
 ## 已创建的云资源
 
 - Infisical：专用项目 youtube-music-telegram-sync，prod 下 shared / github-actions / cloudflare-worker 目录。
 - Cloudflare D1：tgmusic，`0001_initial.sql` 已通过 Wrangler 在远端应用。
-- Cloudflare R2：tgmusic-private，控制台确认 Public Access Disabled；用户已自行开通 R2 订阅。
+- Cloudflare R2：tgmusic-private，控制台确认 Public Access Disabled；用户已自行开通 R2 订阅。恢复任务后，经用户确认创建只授权此桶对象读写的专用凭证，保存并回读核对 Infisical prod `/github-actions` 的 R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY。档案加密密钥也已配置；真实登录档案上传待完成。
 
 ## 真实部署需要完成
 
-1. R2 桶级对象读写凭证、D1 API Token、档案加密密钥写入 Infisical。
+1. 补齐 D1 API Token，并完成 R2 凭证的真实上传验收；R2 桶级对象读写凭证和档案加密密钥已保存到 Infisical。
 2. 确认使用哪个 Telegram Bot 和 Owner/默认私聊数字 ID，目标用户先发送 `/start`。
 3. Actions 专用 Universal Auth 与 Worker Secret Sync 设置最小权限，并验证另一目录访问被拒绝。
 4. 导入兼容 Linux 的有效 Google 登录档案，不上传日常个人浏览器目录。

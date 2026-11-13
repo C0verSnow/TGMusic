@@ -77,6 +77,26 @@ python src/infisical_boot.py src/manage.py login
 
 没有远程桌面的 Xvfb 只提供虚拟显示，不能代替人工完成 Google 登录、验证码或二次验证。Google 在新出口上可能再次要求验证，这属于部署验收的一部分。
 
+#### 在本机通过 Docker 完成人工登录
+
+macOS/Windows 可使用仓库提供的预构建 Linux Chromium，不需要在宿主系统导出 Cookie，也不需要构建 Docker 镜像。先启动 Docker，并完成 `infisical login`；仓库 `.env` 填写本项目的 `INFISICAL_PROJECT_ID`、环境和目录。程序先读取 `.env` 中的定位参数，再通过 Infisical CLI 读取 prod `/github-actions` 的 R2 配置和加密密钥。
+
+```sh
+bash scripts/docker-login.sh --ini config/browser.ini
+```
+
+打开终端提示的 `http://127.0.0.1:3000`，在里面亲自登录 Google，并进入 YouTube Music；密码、验证码和二次验证由本人填写。登录有效后，程序自动停止浏览器容器，把**完整 ini 和完整 Chromium 用户目录**一起归档，再加密上传私有 R2。缓存、Local Storage 和空目录都保留，只排除 Chromium 的运行锁及调试端口文件。端口被占用时可加 `--port 3001`。
+
+成功后清理本次明文用户目录，加密副本留在 `.runtime/docker-login/google-profile.latest.enc`。如果关闭浏览器后的上传失败，保留现场，修复配置后执行：
+
+```sh
+bash scripts/docker-login.sh --upload-only
+```
+
+重传使用原来的 `--ini` 和 `--state-dir`，期间不要修改 ini。若提示云端档案版本冲突，先核对是否有其他任务更新了档案，不要反复重传覆盖。此登录入口需要 `R2_ENDPOINT`、`R2_BUCKET`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`PROFILE_ENCRYPTION_KEY`；可选 `R2_PROFILE_OBJECT`。它不要求先解决 Actions 机器身份额度，也不代表整个同步服务已经上线。
+
+Wrangler CLI 优先用于云资源管理。核对过的 Wrangler 4.160.1 对象上传命令没有条件覆盖和自定义元数据参数，因此档案仍使用已有 boto3 S3 客户端，保留 ETag 条件覆盖、校验元数据和独立加密版本。原因与官方问题链接见[设计记录](docs/design.md#docker-登录与上传方式)。
+
 ### 4. 配置 GitHub
 
 Repository Secrets 只保存：
@@ -150,7 +170,7 @@ python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 
 Telegram Bot API 不提供任意聊天历史查询，无法承诺跨 Telegram 与 D1 的严格事务或自动核对所有不确定结果。
 
-收藏分页必须完整读完才修改歌曲状态。R2/D1 不可用、安装标识不一致、历史数量异常、登录 UNKNOWN 会停止；EXPIRED 会通知 Owner，保留旧档案。浏览器退出后才归档，过滤缓存和 Singleton 锁文件，Fernet 提供认证加密，SHA-256 校验内容；新版本使用 ETag 条件覆盖，并保留独立加密旧版本。正常运行和登录维护共用 D1 租约，避免同时更新档案。
+收藏分页必须完整读完才修改歌曲状态。R2/D1 不可用、安装标识不一致、历史数量异常、登录 UNKNOWN 会停止；EXPIRED 会通知 Owner，保留旧档案。浏览器退出后才归档，保留完整 ini、缓存及用户数据，只排除运行锁和调试端口文件。Fernet 提供认证加密，SHA-256 校验内容；新版本使用 ETag 条件覆盖，并保留独立加密版本。同步任务和 `manage login` 共用 D1 租约；Docker 登录独立运行，以登录前读取的 ETag 防止覆盖期间出现的云端更新。
 
 ## 网络与音频
 

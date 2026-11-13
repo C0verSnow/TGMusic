@@ -32,6 +32,21 @@
 
 Infisical 0.45.6 Linux amd64 包 SHA-256 为 `b427391e76113e351fa0509d6493cb400577dec26b28afb462c2c2f9c5a37d4d`；Mihomo 1.19.34 Linux amd64-v1 包为 `0c07340a01408d033dda4088ea2a4c1e4d82aeed7b2f84f7c046e93b6ff3290c`。来源是对应官方 GitHub Release asset digest，固定在安装脚本，运行时不接受未经校验的最新包。
 
+## Docker 登录与上传方式
+
+沿用预构建的 [LinuxServer Chromium](https://github.com/linuxserver/docker-chromium)，浏览器与 Python 工具容器使用固定镜像摘要。Observer 只连接容器内的 DevTools；宿主只发布 127.0.0.1 的桌面端口。检测到 YouTube Music 登录有效后，宿主停止整个浏览器容器，再归档完整 ini 与完整用户目录，避免镜像的进程守护在归档期间重启 Chromium。完整目录包括缓存与空目录，只排除 Singleton 运行锁和 DevToolsActivePort。
+
+恢复工作时检索并比较了两个已在本项目使用的上传候选：
+
+| 项目 | 本轮核对的维护与许可 | 依赖与适用范围 | 决定 |
+|---|---|---|---|
+| [Cloudflare workers-sdk / Wrangler](https://github.com/cloudflare/workers-sdk) | 4719 星，近期持续提交，Apache-2.0；维护者已响应 [#13000](https://github.com/cloudflare/workers-sdk/issues/13000)，转为功能讨论 [#13169](https://github.com/cloudflare/workers-sdk/discussions/13169) | 已安装 CLI 4.160.1；Node.js；可利用现有登录管理 R2/D1 | 实际读取 CLI help 及官方 `packages/wrangler/src/r2/helpers.ts` 对应实现，确认 `r2 object put` 没有 If-Match/If-None-Match 与自定义元数据参数；不用于替换档案条件上传 |
+| [boto3](https://github.com/boto/boto3) | 9937 星，近期持续提交，Apache-2.0；项目现有依赖及远端存储测试已经使用 | Python、botocore；需桶级 R2 S3 凭证；支持现有条件请求和元数据 | 保留现有客户端，继续先写独立版本，再条件更新主对象，不引入新 SDK |
+
+官方 [R2 CLI 参考](https://developers.cloudflare.com/workers/wrangler/commands/r2/)与 [R2 条件操作](https://developers.cloudflare.com/r2/api/s3/conditional-operations/)分别说明两个接口的能力。CLI 优先意味着先检查其能力；不会把缺失的条件上传换成“先 get 再无条件 put”，也不假定官方 REST 对象上传接口支持未列出的条件和校验元数据。以上仅参考经过核对的设计，没有复制开源实现。
+
+Docker 登录入口不要求 D1/Telegram 配置，因而没有取得同步主流程的 D1 租约。它在打开浏览器前读取主档案 ETag，上传时沿用该 ETag；首次档案则使用 If-None-Match。冲突保留云端当前对象与本地加密副本，交由用户核对后重新开展登录流程。
+
 ## 状态与失败边界
 
 D1 保存 installation、targets、history、roles、admin_targets、审计及命令限频。R2 保存独立安装标识、加密档案、逐首发送回执及 latest.md。安装标识及历史预计条数用于区分真实首次安装与意外数据丢失。
