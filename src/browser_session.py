@@ -62,7 +62,7 @@ class BrowserSession:
         self.digest = profile_digest(destination, self.ini_path)
         import sqlite3
         for cookie_path in (destination / "Default" / "Cookies", destination / "Default" / "Network" / "Cookies"):
-            if cookie_path.is_file():
+            if cookie_path.is_file() and os.getenv("GITHUB_WORKFLOW") == "YouTube Music Sync":
                 with sqlite3.connect(f"file:{cookie_path}?mode=ro", uri=True) as db:
                     counts = db.execute("SELECT hex(substr(encrypted_value,1,3)),count(*) FROM cookies "
                                         "WHERE host_key LIKE '%youtube.com' OR host_key LIKE '%google.com' "
