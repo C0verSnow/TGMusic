@@ -115,7 +115,7 @@ Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 
 3. 再在新 Runner 执行一次 `sync`，确认历史和登录档案可恢复、旧收藏没有重复发送。新增一首收藏后，再验证新增发送与再次运行不重复。
 4. 完成部署验收后才设 `TGMUSIC_ENABLED=true`。手动 `sync` 使用正式发送流程；已初始化的目标出现新增时会实际发送，不是只读检查。
 
-cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
+cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram `/sync` 或 Actions 手动运行会立即请求额外的一次同步，不改变固定定时时刻。GitHub cron 使用 UTC，夏令时只会改变当地显示时间。旧的 `SYNC_INTERVAL_MINUTES` 不再使用，可从 Infisical 移除；调度以 `.github/workflows/sync.yml` 为准。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
 
 工作流固定 Python 3.12、DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
 
@@ -124,10 +124,10 @@ cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYN
 在 `worker/wrangler.toml` 填好 D1 UUID、R2 桶和 Bot 用户名，在有授权的部署环境执行：
 
 ```sh
-npx wrangler@4.45.0 deploy --config worker/wrangler.toml
+npx wrangler@4.45.0 deploy --no-bundle --config worker/wrangler.toml
 ```
 
-随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 prod `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
+Worker 是原生 JavaScript，`--no-bundle` 直接上传源码，跳过本地构建。随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 prod `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
 
 在可信配置环境注入 Telegram Token 和 Webhook Secret 后注册：
 

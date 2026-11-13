@@ -1,7 +1,7 @@
 name: YouTube Music Sync
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
       operation:
