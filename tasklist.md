@@ -4,6 +4,8 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794570059] Issue #5 阶段验收：真实 Worker、Webhook、Infisical 自动 Secret Sync、Music 群授权和 91 首基线、私聊样例链接发送已完成。重复同步 43417863729 为 182 已处理、0 新增/发送/失败/待核对；重复 Webhook update_id 的审计 5→5。实际音频仍未通过，不关闭 Issue、不把草稿 PR 当完成。
+
 - [1794554016] Issue #3 已完成并按用户要求关闭；PR #4 已转为待 review，未合并。真实 Runner 43382782005 自动登录、读取 91 首并建基线；下一台 43383234383 直接 VALID、91 首已处理、0 新增/发送/失败/待核对。D1 读回基线与预计条数均为 91，租约已释放；TGMUSIC_ENABLED=false。
 - [1794554016] 实现提交 2e4b71f 的 push CI 43383233679、PR CI 43383240442 全通过：Python 38 项、Worker 7 项、Worker 打包与 push Docker 浏览器。已更新 README、设计参考、验收表和历史状态说明；GitHub 已检索相关项目与官方源码，没有复制来源不明代码、没有新增依赖。
 - [1794554016] 本地测试仅在用户本轮明确授权后使用固定预构建 Docker；未构建镜像或本地编译。完整 ini/User Data 的原归档实现符合用户确认，修复点是 HTTP 探测、Cookie 选择页和正常 Sign in 跳转。临时 DEBUG 代码与第二个重放容器、明文目录已清理，3002 桌面保留供用户继续查看。
@@ -85,6 +87,14 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794570324] Music 群已真实收到 MP3，D1 为 sent/audio、message_id=7、attempts=1，tg history 读到同首歌曲文件消息。已请用户点播放确认，并再次用真实群指令做不重发回归。Secret Sync 临时标记自动到达 Worker，lastSyncedAt 更新至 11:43:21.568Z，已开始清理临时键，业务密钥值保持原样。
+
+- [1794570257] 93ef185 的 push CI 43418629071 和 PR CI 43418637654 全通过：Python 43 项、Worker 8 项及打包、push Docker 浏览器。真实 check-audio 43418750075 得到有效 MP3 4,335,021 字节；已移除诊断脚本对旧 player 接口的先决依赖。Music 群真实 /sync 触发 43419183416，正在发送音频。另在本应用 Secret Sync 源目录加临时验收标记，检查真实变更自动触发，验证后清理，不改业务密钥值。
+
+- [1794570136] yt-dlp 真实 check-audio 43418750075 成功，93ef185 push/PR CI 全通过。按用户此前“只让程序忘掉这一首”的授权，备份并只撤销 Music 群中该首未发送 baseline，预计条数同步为 90，用于群内真实音频发送；私聊已发送 link、message_id=18 的记录保持不变，未动其他歌曲。
+
+- [1794569956] 重复同步 43417863729 已成功，准备读取无新增/不重发日志；93ef185 已推送 yt-dlp 接入及真实下载回归，另行触发远端 check-audio。Secret Sync 后用明确 User-Agent 测得 Worker 缺失/错误 Secret 均返回原生 Forbidden，正确 Secret 返回 OK；先前 Python 默认 UA 被 Cloudflare 边缘拒绝，已纠正验证请求。
+
 - [1794569777] 远端音频诊断 43417558822 已定位：真实登录 VALID，但旧 player 接口 playable=false、音频地址 0；未发送消息或改歌曲历史。用户建议检索开源下载项目，按 research 技能委派后台研究；比较 yt-dlp 与 pytubefix 后接入锁定 yt-dlp 2026.10.26 + EJS 0.8.0，Runner 沿用现有 setup-node22。保留原授权清单、Cookie 域、代理不回落直连、49MB 上限、FFmpeg 和链接回退；新增实际 HTTP + yt-dlp + FFmpeg 回归，只在远端运行。
 
 - [1794569381] 用户已保存专用 Cloudflare Token，验证 active；用既有个人 Infisical CLI 会话建立 tgmusic-worker-secrets App Connection 和自动 Secret Sync（01fddc4a-8d48-480b-a168-1b96b552e9d2），状态 succeeded，四项 secret_text 已核对。私聊 sync 43415732090 成功：指定歌曲只发送一次 link、message_id=18、attempts=1；音频仍未通过。用户同意先做远端不发送的音频诊断，增加 check-audio 手动入口，复用正式实现，不引入新组件。

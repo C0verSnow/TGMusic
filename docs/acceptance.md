@@ -132,17 +132,28 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 本次已完成新 Runner 的真实恢复、基线与无新增不重复；真实新增发送、音频播放、群组和 Worker 部署仍未验收，定时同步继续关闭。PR #4 交用户 review，不自行合并。
 
 
-## Issue #5：六小时调度、真实 Worker 与发送联调（进行中）
+## Issue #5：六小时调度与真实服务联调
 
-- 分支 `feature/issue-5-six-hour-sync`，草稿 [PR #6](https://github.com/C0verSnow/TGMusic/pull/6)，未合并。
-- 提交 `a76aa52` 的 [push CI 43414821023](https://github.com/C0verSnow/TGMusic/actions/runs/43414821023) 通过：Python 39 项、Worker 8 项、Worker 打包与预构建 Docker 浏览器。[PR CI 43415122375](https://github.com/C0verSnow/TGMusic/actions/runs/43415122375) 第二次尝试通过；第一次是原有浏览器归档回归在导航时出现 ContextLostError，只重跑失败任务，没有因此修改产品代码。
-- 六小时 cron 已改为 UTC 00:17、06:17、12:17、18:17，移除旧 `SYNC_INTERVAL_MINUTES` 门槛；正式 `main()` 回归使用真实 SQLite 和正式同步流程，验证近期成功后定时及手动任务照常执行且不重发。
-- Worker 已通过 `wrangler deploy --no-bundle` 直接上传（没有本地构建），地址 `https://tgmusic-webhook.f1515xcn.workers.dev`。首次版本 `d2ecc348-cab2-4fdb-952b-1b0a00c9e39c`；为联调临时将 GITHUB_REF 指向 feature 分支，仓库配置仍为 main。
-- 现有四项 Worker Secrets 已通过 Wrangler 注入；真实 `setWebhook` 成功，`getWebhookInfo` 的 URL 正确、待投递为 0。缺失和错误 Webhook Secret 请求实际均返回 403。**一次性 Secrets 上传不等于持续 Infisical Secret Sync**。
-- 用户确认验收群为 Music `-1004447109031`。Bot API 验证 Owner 为 creator，Bot 为 administrator。通过用户指定的本机 `tg` 真实账号发送 `/addtarget`，收到“目标已授权”；D1 新增群目标，首次模式仍是 baseline。
-- 群内真实 `/sync@C0verSnow_TGMusic_Test_bot` 触发 [43415724056](https://github.com/C0verSnow/TGMusic/actions/runs/43415724056)，私聊 `/sync` 触发 [43415732090](https://github.com/C0verSnow/TGMusic/actions/runs/43415732090)。D1 审计均 allowed；不是伪造 Telegram Webhook。
-- 用户授权的音频样例是 `gHk8MIx6nfY`，已写入 Infisical `AUDIO_AUTHORIZED_VIDEO_IDS`。它原本就在 91 首旧基线中；经用户明确同意，先备份并只撤销私聊该首 baseline，预计历史计数同步为 90。没有删除已发送记录或其他歌曲。此测试模拟新歌曲，不将它描述成歌单实际新增。
-- 当前阻塞：Infisical 无 Cloudflare App Connection。现有机器身份不能管理 App Connection；个人 CLI 会话可以读取。Wrangler OAuth 可以部署和注入 Secrets，但用户/账号 Token 管理接口为 403，CLI 没有创建长期 API Token 的命令。仍需 Workers Scripts Edit + Account Settings Read 的专用 Token，才能创建并验收持续 Secret Sync。用户授权接管浏览器，但 macOS 辅助功能和 Chrome AppleEvents JavaScript 均阻止控制；没有更改这些系统权限。
-- 合并 review 前 `TGMUSIC_ENABLED=false`：GitHub schedule 只运行默认分支，提前打开会执行 main 中旧的五分钟 cron。合并后才启用并核对六小时调度。
+分支 `feature/issue-5-six-hour-sync`，草稿 [PR #6](https://github.com/C0verSnow/TGMusic/pull/6)，未合并；真实下载与群内音频发送已通过，用户播放器确认和音频再次运行不重发正在验收。
 
-本轮仅做本地静态解析、语法与差异检查，没有进行本地构建、编译、测试或冒烟。已在 GitHub 检索并比较 Infisical 与 workers-sdk，维护、许可证、方案取舍及源码链接见 `docs/design.md`。
+| 项目 | 实际结果与证据 |
+|---|---|
+| 六小时调度 | cron `17 */6 * * *`，UTC 00:17、06:17、12:17、18:17；移除旧间隔门槛，手动请求不推迟定时。正式 `main()` + SQLite 回归已通过 |
+| 首轮自动测试 | `a76aa52` [push CI 43414821023](https://github.com/C0verSnow/TGMusic/actions/runs/43414821023) 通过：Python 39、Worker 8、Worker 打包、Docker 浏览器。[PR CI 43415122375](https://github.com/C0verSnow/TGMusic/actions/runs/43415122375) 第二次通过；首次旧浏览器归档测试 ContextLostError，仅重跑失败任务 |
+| yt-dlp 自动测试 | `93ef185` 的 [push 43418629071](https://github.com/C0verSnow/TGMusic/actions/runs/43418629071) 与 [PR 43418637654](https://github.com/C0verSnow/TGMusic/actions/runs/43418637654) 均通过：Python 43、Worker 8、Worker 打包，push 含 Docker 浏览器。真实 HTTP 下载、Cookie/User-Agent、代理失败不直连、已知/未知大小上限均已通过 |
+| 诊断入口 CI | `ae2ce40` 的 [push 43417509704](https://github.com/C0verSnow/TGMusic/actions/runs/43417509704) 和 [PR 43417516385](https://github.com/C0verSnow/TGMusic/actions/runs/43417516385) 均通过 |
+| Worker | `https://tgmusic-webhook.f1515xcn.workers.dev`，通过 Wrangler `--no-bundle` 直接上传，没有本地构建；首次代码版本 `d2ecc348-cab2-4fdb-952b-1b0a00c9e39c`。联调暂指向 feature；仓库配置保持 main |
+| Secret Sync | 用户在 `.env` 保存专用 Token 后，验证 active，建立 Example Project 的 `tgmusic-worker-secrets` App Connection（`6bb3b01c-4d6d-4787-9143-4eddc23dc36f`）。自动 Sync `01fddc4a-8d48-480b-a168-1b96b552e9d2` 已 succeeded，来源 prod `/tgmusic/cloudflare-worker`，目标仅 tgmusic-webhook，四项 secret_text。D1、R2、plain_text 绑定均保留。临时源标记自动到达 Worker，lastSyncedAt 更新为 2026-11-13T11:43:21.568Z，证明变更自动触发；验证后清理临时标记 |
+| Webhook | 真实 setWebhook 成功，getWebhookInfo URL 正确、队列 0。明确 User-Agent 后，缺失/错误 Secret 均得到 Worker 原生 `403 Forbidden`，正确 Secret 为 `200 OK`；Python 默认 UA 曾被 Cloudflare 边缘 1010 拒绝，没有把该响应当成 Worker 鉴权证据 |
+| 真实群组 | 用户确认 Music `-1004447109031`；Owner 是 creator，Bot 是 administrator。本机 `tg` 真实账号发送 `/addtarget` 成功；群内 `/sync@C0verSnow_TGMusic_Test_bot` 触发 [43415724056](https://github.com/C0verSnow/TGMusic/actions/runs/43415724056)，VALID、91 首群基线，未动私聊、未群发旧歌 |
+| 样例发送 | 私聊真实 `/sync` 触发 [43415732090](https://github.com/C0verSnow/TGMusic/actions/runs/43415732090)，91 首、旧记录 181、新增 1、成功 1、失败/待核对 0；gHk8MIx6nfY 实际发送 **link**，message_id=18、attempts=1。`tg history` 读到歌曲标题和原链接。不是音频播放通过 |
+| 端到端去重 | 再次真实 `/sync` 的 [43417863729](https://github.com/C0verSnow/TGMusic/actions/runs/43417863729) 成功，VALID、91 首、already_sent=182，new/success/failed/held 均 0。私聊样例仍 message_id=18、attempts=1；重放相同真实 Webhook update_id 返回 200，审计数 5→5，没有再分发 |
+| 音频失败定位 | 旧代码 [check-audio 43417558822](https://github.com/C0verSnow/TGMusic/actions/runs/43417558822)：Google VALID，但旧 player playable=false、音频格式 0；没有发送消息或改歌曲历史。用户建议借鉴开源下载器后，接入 yt-dlp 2026.10.26 + EJS 0.8.0，[check-audio 43418750075](https://github.com/C0verSnow/TGMusic/actions/runs/43418750075) 已通过，生成 .mp3 4,335,021 字节；真实群内 [sync 43419183416](https://github.com/C0verSnow/TGMusic/actions/runs/43419183416) 已记录 sent/audio、message_id=7、attempts=1，`tg history` 读到文件消息。用户播放器确认待完成 |
+
+指定歌曲原本就在旧 91 首基线；经用户明确同意，备份并只撤销私聊该首未发送 baseline，预计历史同步从 91 改为 90，再由正式同步发送。该测试模拟新增，不描述成歌单实际新增；随后音频下载通过后，按同一歌曲的验收授权，也只撤销该首群内未发送 baseline，让正式群同步发送一次 MP3；私聊 link 发送记录保留。没有删除已发送记录或其他歌曲。
+
+一次重复同步 [43416436242](https://github.com/C0verSnow/TGMusic/actions/runs/43416436242) 在浏览器连接阶段报 BrowserConnectError，尚未发送歌曲；后续 43417863729 正常通过，没有把失败一轮当成去重成功。Worker 接收指令到 Actions/D1 的证据来自真实 `tg`，没有伪造 Telegram 身份。
+
+`TGMUSIC_ENABLED=false` 保持到 PR review 合并：GitHub schedule 只运行默认分支，提前打开会执行 main 中旧五分钟 cron。合并后才启用并核对六小时调度。
+
+本轮仅本地代码阅读、AST / JavaScript 语法和差异静态检查，没有本地构建、编译、测试或冒烟。已在 GitHub 检索并比较 Infisical、workers-sdk、yt-dlp、pytubefix，详见设计与下载研究文档。

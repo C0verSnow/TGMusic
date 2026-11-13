@@ -38,14 +38,6 @@ def main():
         song = next((song for song in songs if song.video_id == video_id), None)
         if song is None:
             raise SyncError('Authorized sample is not in the configured playlist')
-        data = youtube.player(video_id)
-        formats = data.get('streamingData', {}).get('adaptiveFormats', [])
-        audio = [row for row in formats if row.get('mimeType', '').startswith('audio/')]
-        status = data.get('playabilityStatus', {}).get('status')
-        logging.info('Audio probe: playable=%s audio_formats=%d direct_https=%d ciphered=%d',
-                     status == 'OK', len(audio),
-                     sum(row.get('url', '').startswith('https://') for row in audio),
-                     sum(bool(row.get('signatureCipher') or row.get('cipher')) for row in audio))
         with tempfile.TemporaryDirectory(prefix='tgmusic-audio-probe-') as directory:
             output = AudioResolver(youtube, network.session, config).resolve(song, directory)
             if output is None:
