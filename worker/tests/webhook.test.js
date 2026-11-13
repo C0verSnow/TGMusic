@@ -83,8 +83,11 @@ test('owner dispatches once; duplicate update and rapid commands are limited', a
     await f.send('/sync', 1, 1, 'secret', 40);
     await f.send('/sync', 1, 1, 'secret', 41);
     assert.equal(f.calls.filter(x => x.url.includes('github')).length, 1);
-    assert.deepEqual(f.calls.find(x => x.url.includes('github')).data, { ref: 'main' });
+    assert.deepEqual(f.calls.find(x => x.url.includes('github')).data, { ref: 'main', inputs: { reply_chat_id: '1' } });
     assert.equal(f.query('SELECT * FROM audit_log').length, 2);
+    const accepted = f.calls.find(x => x.data.text?.includes('已请求同步'));
+    assert.doesNotMatch(accepted.data.text, /同步完成/);
+    assert.match(accepted.data.text, /docs\/latest\.md/);
   } finally { f.cleanup(); }
 });
 
@@ -105,11 +108,11 @@ test('admin only sees and controls assigned groups', async () => {
   } finally { f.cleanup(); }
 });
 
-test('owner adds groups with baseline and removal preserves history', async () => {
+test('owner adds groups for backfill and removal preserves history', async () => {
   const f = fixture();
   try {
     await f.send('/addtarget -300 audio');
-    assert.equal(f.query('SELECT initial_mode FROM targets WHERE chat_id=-300')[0].initial_mode, 'baseline');
+    assert.equal(f.query('SELECT initial_mode FROM targets WHERE chat_id=-300')[0].initial_mode, 'all');
     f.query("INSERT INTO history(chat_id,video_id,title,artist,status) VALUES(-300,'abcdefghijk','Song','Artist','sent')");
     f.query('DELETE FROM command_limits');
     await f.send('/removetarget -300');
@@ -128,7 +131,7 @@ test('admin sync dispatch is limited to assigned targets', async () => {
   try {
     await f.send('/sync', 2);
     const dispatched = f.calls.find(x => x.url.includes('github'));
-    assert.deepEqual(dispatched.data, { ref: 'main', inputs: { target_chat_ids: '[-100]' } });
+    assert.deepEqual(dispatched.data, { ref: 'main', inputs: { reply_chat_id: '2', target_chat_ids: '[-100]' } });
   } finally { f.cleanup(); }
 });
 
@@ -138,7 +141,7 @@ test('addressed sync in an authorized group dispatches only that group', async (
   try {
     await f.send('/sync@testbot', 1, -100);
     assert.deepEqual(f.calls.find(x => x.url.includes('github')).data,
-      { ref: 'main', inputs: { target_chat_ids: '[-100]' } });
+      { ref: 'main', inputs: { reply_chat_id: '-100', target_chat_ids: '[-100]' } });
     f.query('DELETE FROM command_limits');
     await f.send('/sync@anotherbot', 1, -100);
     assert.equal(f.calls.filter(x => x.url.includes('github')).length, 1);

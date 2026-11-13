@@ -39,6 +39,7 @@ class Config:
     mihomo_select_group: str
     mihomo_us_node: str
     sync_target_chat_ids: frozenset | None
+    sync_reply_chat_id: int | None
 
     @classmethod
     def load(cls):
@@ -49,7 +50,7 @@ class Config:
         missing = [key for key in required if not os.environ.get(key)]
         if missing:
             raise SyncError("Missing configuration: " + ", ".join(missing))
-        mode = choice("INITIAL_SYNC_MODE", "baseline", {"baseline", "all"})
+        mode = choice("INITIAL_SYNC_MODE", "all", {"baseline", "all"})
         reader = choice("YOUTUBE_READER", "innertube", {"innertube", "ytmusicapi"})
         proxy = choice("MIHOMO_ENABLED", "auto", {"auto", "true", "false"})
         audio_format = choice("AUDIO_FORMAT", "mp3", {"mp3", "m4a"})
@@ -72,6 +73,7 @@ class Config:
             os.getenv("MIHOMO_PROXY_URL", "http://127.0.0.1:7890"),
             os.getenv("MIHOMO_CONTROLLER_URL", "http://127.0.0.1:9090"),
             os.getenv("MIHOMO_SELECT_GROUP", ""), os.getenv("MIHOMO_US_NODE", ""), target_scope(),
+            integer("SYNC_REPLY_CHAT_ID") if os.getenv("SYNC_REPLY_CHAT_ID") else None,
         )
 
 

@@ -89,8 +89,8 @@ async function execute(input, env, role) {
       scope = targets.results.map(row => row.chat_id);
       if (!scope.length) { await reply(env, chatId, '暂无可同步的授权目标。'); return; }
     }
-    await dispatch(env, scope);
-    await reply(env, chatId, '已请求同步，GitHub Actions 将执行任务。');
+    await dispatch(env, scope, chatId);
+    await reply(env, chatId, '已请求同步，正在核对并补发未发送歌曲；docs/latest.md 更新后才会报告结果。');
   } else if (command === 'targets' || command === 'status') {
     let query = 'SELECT t.chat_id,t.type,t.enabled,t.send_mode,t.initialized FROM targets t WHERE t.removed=0';
     const params = [];
@@ -99,7 +99,7 @@ async function execute(input, env, role) {
       params.push(userId);
     }
     const rows = await env.DB.prepare(query + ' ORDER BY t.chat_id').bind(...params).all();
-    const lines = rows.results.map(t => `${t.chat_id} ${t.type} ${t.enabled ? '启用' : '暂停'} ${t.send_mode} ${t.initialized ? '已建基线' : '待初始化'}`);
+    const lines = rows.results.map(t => `${t.chat_id} ${t.type} ${t.enabled ? '启用' : '暂停'} ${t.send_mode} ${t.initialized ? '已初始化' : '待初始化'}`);
     if (command === 'status') {
       const installation = await env.DB.prepare('SELECT last_success FROM installation WHERE id=1').first();
       lines.unshift(`上次成功：${installation?.last_success ? new Date(installation.last_success * 1000).toISOString() : '暂无'}`);
@@ -117,10 +117,10 @@ async function execute(input, env, role) {
       return;
     }
     await telegram(env, 'getChat', { chat_id: targetId });
-    await env.DB.prepare('INSERT INTO targets(chat_id,type,send_mode) VALUES(?,?,?) '
+    await env.DB.prepare("INSERT INTO targets(chat_id,type,send_mode,initial_mode) VALUES(?,?,?,'all') "
       + 'ON CONFLICT(chat_id) DO UPDATE SET removed=0,enabled=1,send_mode=excluded.send_mode')
       .bind(targetId, targetId < 0 ? 'group' : 'user', mode).run();
-    await reply(env, chatId, '目标已授权。新目标首次只建立基线。');
+    await reply(env, chatId, '目标已授权。同步时会补发歌单中尚未发送的歌曲。');
   } else if (command === 'removetarget') {
     const targetId = targetArgument(args[0]);
     if (!targetId) { await reply(env, chatId, '用法：/removetarget <数字 chat_id>'); return; }
@@ -165,11 +165,12 @@ function targetArgument(value) {
   return Number.isSafeInteger(id) && id !== 0 ? id : null;
 }
 
-async function dispatch(env, scope) {
+async function dispatch(env, scope, replyChatId) {
   const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/sync.yml/dispatches`, {
     method: 'POST', headers: { Authorization: `Bearer ${env.GITHUB_WORKFLOW_TRIGGER_TOKEN}`,
       Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'TGMusic-Worker' },
-    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', ...(scope ? { inputs: { target_chat_ids: JSON.stringify(scope) } } : {}) }), signal: AbortSignal.timeout(10000),
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { reply_chat_id: String(replyChatId),
+      ...(scope ? { target_chat_ids: JSON.stringify(scope) } : {}) } }), signal: AbortSignal.timeout(10000),
   });
   if (response.status !== 204) throw new Error('GitHub dispatch failed');
 }

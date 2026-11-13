@@ -2,7 +2,7 @@
 
 把一个 YouTube Music 账号的收藏或指定歌单中的新增歌曲发到 Telegram 私聊或已授权群组。GitHub Actions 负责浏览器和音频处理，Cloudflare D1 保存发送状态，私有 R2 保存加密登录档案，Cloudflare Worker 接收指令，Infisical Cloud 管理密钥。
 
-默认首次只建立基线，不发送旧收藏；以后每个新目标也单独建基线。目标默认优先音频，但只有 `AUDIO_AUTHORIZED_VIDEO_IDS` 明确列出的、允许下载和重新分发的歌曲才会尝试获取文件，其余发送原链接。链接和音频在历史中分别记录。
+每个聊天分别核对成功发送记录，补发歌单中未发送的歌曲；旧的首次基线不再跳过。目标默认优先音频，但只有 `AUDIO_AUTHORIZED_VIDEO_IDS` 明确列出的、允许下载和重新分发的歌曲才会尝试获取文件，其余发送原链接。链接和音频在历史中分别记录。
 
 实现来自 [Issue #1](https://github.com/C0verSnow/TGMusic/issues/1) 的最新整合需求和随笔。参考项目、选择原因与已知限制见 [设计说明](docs/design.md)，逐项验收见 [验收清单](docs/acceptance.md)。
 
@@ -14,10 +14,12 @@ flowchart LR
   B --> C[直连检查 / Mihomo 美国备用出口]
   C --> D[DrissionPage 检测登录]
   D --> E[读取全部收藏分页]
-  E --> F[D1 按目标找新增]
+  E --> F[D1 按聊天核对未发送歌曲]
   F --> G[Telegram 音频或链接]
   G --> H[R2 回执 + D1 逐首保存]
-  H --> I[导出历史 / 退出浏览器后加密备份]
+  H --> I[更新 R2 和仓库 docs/latest.md]
+  I --> J[退出浏览器后加密备份]
+  J --> K[无未发送歌曲才回复同步完成]
 ```
 
 ## 首次部署
@@ -111,13 +113,13 @@ Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 
 在 Actions 的 **YouTube Music Sync → Run workflow** 选择要验收的分支：
 
 1. 首次安装且已核对 D1/R2 都没有安装标识或历史时，选择 `operation=bootstrap`，`target_chat_ids` 留空。它只调用现有显式初始化命令，不启动浏览器或发送收藏；已有或残缺的安装会报错，不能反复初始化来修复失败。
-2. 选择 `operation=sync`，验收 Infisical 注入、R2 档案恢复、Google 登录、完整收藏分页和默认基线。此时定时仍可保持关闭。
-3. 再在新 Runner 执行一次 `sync`，确认历史和登录档案可恢复、旧收藏没有重复发送。新增一首收藏后，再验证新增发送与再次运行不重复。
+2. 选择 `operation=sync`，验收 Infisical 注入、R2 档案恢复、Google 登录、完整收藏分页和按聊天补发。此时定时仍可保持关闭。
+3. 再在新 Runner 执行一次 `sync`，确认历史和登录档案可恢复、成功发送的歌曲没有重复发送。新增一首收藏后，再验证新增发送与再次运行不重复。
 4. 完成部署验收后才设 `TGMUSIC_ENABLED=true`。手动 `sync` 使用正式发送流程；已初始化的目标出现新增时会实际发送，不是只读检查。
 
 cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram `/sync` 或 Actions 手动运行会立即请求额外的一次同步，不改变固定定时时刻。GitHub cron 使用 UTC，夏令时只会改变当地显示时间。旧的 `SYNC_INTERVAL_MINUTES` 不再使用，可从 Infisical 移除；调度以 `.github/workflows/sync.yml` 为准。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
 
-工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
+工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。同步 job 使用短期 `GITHUB_TOKEN` 的 `contents: write`，仅自动提交 `docs/latest.md` 到当前运行分支；CI 仍为 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
 
 音频回退为链接时，可在 Run workflow 选择 `operation=check-audio`，填写已在 `AUDIO_AUTHORIZED_VIDEO_IDS` 授权的 `video_id`。它在远端恢复真实档案并调用正式音频解析、下载与转码，只输出正式解析是否成功、音频格式和文件大小，不发送消息、不修改歌曲历史，也不上传登录档案。检查失败与正常同步的链接回退要分开看。
 
@@ -145,7 +147,7 @@ python src/infisical_boot.py src/manage.py set-webhook https://你的Worker域�
 |---|---|---|
 | `/start` `/help` | 帮助 | 所有人 |
 | `/status` | 最近同步与目标状态 | Owner / Admin |
-| `/sync` | 请求一次 Actions 任务 | Owner / Admin |
+| `/sync` | 核对并补发未发送歌曲，更新清单后回报结果 | Owner / Admin |
 | `/targets` | 查看目标；Admin 只看到授权范围 | Owner / Admin |
 | `/addtarget` | `/addtarget -1001234567890 audio`；也可 link | Owner，且须为该群管理员 |
 | `/removetarget` | `/removetarget -1001234567890`；保留历史 | Owner |
@@ -163,7 +165,10 @@ python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 
 ## 发送、失败与恢复
 
-- D1 主键是 `(chat_id, video_id)`。`baseline` 只是忽略首次旧收藏，不能当成“发送成功”；`sent` 还包含实际 `delivery_mode=audio|link` 和 Telegram message_id。
+- D1 主键是 `(chat_id, video_id)`。只有 `sent` 算已发送，保留实际 `delivery_mode=audio|link`、Telegram message_id 和发送时间。旧 `baseline` 算未发送，会逐次补发；新目标首次也补发。`INITIAL_SYNC_MODE` 的旧值仍兼容读取，但不再让 baseline 跳过发送。
+- [歌曲清单](docs/latest.md) 由正式 D1 记录和本次完整歌单自动生成，列出每个聊天的已发送、未发送、发送失败与待核对歌曲；未核对的其他聊天保留原记录并明确标注。本轮不在歌单里的旧成功记录仍保留，防止重新收藏后重复发送。
+- `/sync` 先回复“已请求”，Runner 补发、保存回执与 D1、更新 R2 副本和仓库 `docs/latest.md`、备份登录档案后，才回原聊天报告结果。歌单全部已发送才显示“同步完成”；失败、待核对、无启用目标、达到 `SYNC_MAX_SONGS`（默认每轮最多 20 次发送）或 20 分钟发送时限时，显示尚未完成，继续 `/sync` 只处理剩余项。定时或 Actions 手动运行没有指定回执聊天时通知 Owner。
+- `docs/latest.md` 自动写入当前运行分支：review 前手动运行 feature 分支不会修改 main；合并后 `/sync` 和定时运行 main。GitHub 发布失败时不记成功，重跑会根据 D1 跳过已发歌曲。清单是发送记录的展示，不从 Markdown 反向恢复或覆盖 D1。Bot API 不能拉取任意旧聊天历史，也无法发现用户后来删除消息。
 - 单首歌曲或单个目标被 Telegram 明确拒绝时记 failed，继续其他歌曲；以后重试。429 按 retry_after 重试，最多三次，单次等待不超过 60 秒。
 - 建连超时确认尚未发送时最多重试三次；响应超时和 Telegram 5xx 可能发生在服务器已经收下消息之后，不能盲目重发，保留 pending 并提醒 Owner。
 - 成功后先在 R2 写逐首回执，再写 D1。D1 写失败时，下次读取回执补齐状态，不再次发送。R2 回执也写失败则保留 pending 等人工核对。

@@ -77,7 +77,7 @@ def bootstrap(config, db, r2):
     r2.put("sync/installation.json", json.dumps({"installation_id": installation_id}).encode(), create=True)
     db.query("INSERT INTO installation(id,installation_id) VALUES(1,?)", (installation_id,))
     db.query("INSERT INTO roles(user_id,role) VALUES(?,'owner')", (config.telegram_owner_id,))
-    db.query("INSERT INTO targets(chat_id,type,initial_mode) VALUES(?,'user',?)", (target, config.initial_sync_mode))
+    db.query("INSERT INTO targets(chat_id,type,initial_mode) VALUES(?,'user','all')", (target,))
     print("Installation created. Import a valid browser profile before enabling the schedule.")
 
 

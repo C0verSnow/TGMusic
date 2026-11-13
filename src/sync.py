@@ -9,21 +9,20 @@ from utils import safe_label
 
 
 def sync_targets(history, r2, telegram, resolver, songs, config, deadline=None, target_chat_ids=None):
-    summary = {"total": len(songs), "already_sent": 0, "new": 0, "success": 0, "failed": 0, "held": 0, "paused": []}
+    summary = {"total": len(songs), "already_sent": 0, "new": 0, "success": 0, "failed": 0,
+               "held": 0, "remaining": 0, "paused": [], "targets": []}
     budget = config.sync_max_songs
     for target in history.targets():
         chat_id = target["chat_id"]
         if target_chat_ids is not None and chat_id not in target_chat_ids:
             continue
+        summary["targets"].append(chat_id)
         records = history.records(chat_id)
         if not target["initialized"]:
-            history.initialize_target(target, songs, target["initial_mode"])
-            if target["initial_mode"] == "baseline":
-                logging.info("Established baseline of %d songs for %s", len(songs), chat_id)
-                continue
+            history.initialize_target(target)
         for song in songs:
             previous = records.get(song.video_id)
-            if previous and previous["status"] in {"sent", "baseline"}:
+            if previous and previous["status"] == "sent":
                 summary["already_sent"] += 1
                 continue
             if previous and previous["status"] == "pending":
@@ -64,5 +63,8 @@ def sync_targets(history, r2, telegram, resolver, songs, config, deadline=None, 
                 history.sent(chat_id, song.video_id, receipt)
                 summary["success"] += 1
                 logging.info("Sent %s (%s)", song.video_id, mode)
+        records = history.records(chat_id)
+        summary["remaining"] += sum(
+            song.video_id not in records or records[song.video_id]["status"] != "sent" for song in songs)
     logging.info("Sync summary: %s", summary)
     return summary

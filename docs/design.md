@@ -1,6 +1,6 @@
 # 设计与参考记录
 
-核对日期：2026-11-12。Issue 最新随笔优先，采用 Cloudflare Worker；代理默认 auto；新增目标默认 baseline；默认偏好 audio；权限放 D1；Worker 使用 Infisical Cloud 的 Secret Sync。
+核对日期：2026-11-13。Issue #7 与用户本轮确认优先，采用 Cloudflare Worker；代理默认 auto；新增目标补发未发送歌曲；默认偏好 audio；权限放 D1；Worker 使用 Infisical Cloud 的 Secret Sync。
 
 ## GitHub 检索与候选比较
 
@@ -61,7 +61,7 @@ Docker 登录入口不要求 D1/Telegram 配置，因而没有取得同步主流
 
 D1 保存 installation、targets、history、roles、admin_targets、审计及命令限频。R2 保存独立安装标识、加密档案、逐首发送回执及 latest.md。安装标识及历史预计条数用于区分真实首次安装与意外数据丢失。
 
-首次初始化只由 manage bootstrap 显式执行。默认目标可以选择 baseline/all；以后新加目标固定默认 baseline；移除目标只是停用，不删除其历史，重新加入不会重复旧歌。
+首次初始化只由 manage bootstrap 显式执行。旧 baseline/all 配置兼容保留，但 Issue #7 起所有目标都补发未发送歌曲，baseline 不再跳过；移除目标只是停用，不删除其历史，重新加入不会重复旧歌。
 
 D1 租约与 Actions concurrency 防止同一安装重叠执行；租约 35 分钟，工作流最多 30 分钟，发送和档案更新前检查租约。R2 ETag 防止旧档案覆盖新档案。不尝试构造跨 Telegram、R2、D1 的分布式事务。
 
@@ -112,3 +112,22 @@ Worker 是无外部 import 的原生 ES module，可用 `wrangler deploy --no-bu
 下载器直接承担音源选择和下载，替换旧的自写直链流程；仅处理授权清单内 videoId。Cookie 从 DrissionPage 保存的 YouTube 域元数据注入 CookieJar，不把包含账号 Cookie / SAPISIDHASH 的整个 headers 字典当成全局媒体请求头。保留源域、路径和 Secure 属性；代理从正式 session 读取，空串显式直连，有代理时失败不回落。`max_filesize` 预检查和实际下载进度上限分别覆盖已知和未知 Content-Length；仍用 FFmpeg 生成 MP3/M4A，再走原来的 Telegram、R2 receipt 与 D1 去重。没有引入 CAPTCHA、外部 PO Token 服务或 DRM 解密。
 
 自动测试使用远端 CI 内真实 yt-dlp GenericIE、HTTP downloader 和 FFmpeg，验证文件、Cookie / User-Agent、明确拒绝、已知及未知大小、代理失败。该夹具只证明下载/转换集成，不冒称验证 YouTube 线上提取器；真实样例另用 `check-audio` 和 Telegram 验收。
+
+## Issue #7：按真实发送记录补发并更新仓库清单
+
+用户已确认：Bot API 无法读取任意旧聊天历史时，使用现有成功发送记录和 Telegram 消息 ID 核对；并要求每次同步后自动提交 `docs/latest.md` 到仓库。D1 是去重来源，R2 receipt 恢复“发送已成功但 D1 写失败”的记录。Markdown 是展示，不能手工编辑它来改变发送状态。
+
+实现顺序：完整读取歌单 → 每个授权且启用的聊天对比 D1 → 只跳过 sent，baseline/failed/无记录允许发送，pending 先恢复回执或等待人工核对 → 逐首写 R2 receipt、D1 sent → 导出所有未移除聊天的清单 → 更新 R2 副本与运行分支 `docs/latest.md` → 备份浏览器 → 无剩余歌曲才回复完成。局部同步不会发送其他聊天的歌曲；清单保留其他聊天原记录并注明本次未核对，不把旧记录假装为本次结果。清单保留已不在当前歌单中的历史发送记录。
+
+预算或发送时限耗尽仍导出未发送歌曲，并返回未完成；再次 `/sync` 继续剩余。403 暂停目标，pending 不确定发送仍由 Owner 核对。仓库发布失败也不会提示完成或更新 last_success；R2/D1 已保存的成功记录保留，下轮不会重发。每次更新后的文档有生成时间，不假定能检测聊天消息被删除。
+
+### 检索与实现选择
+
+2026-11-13 在 GitHub 检索并读取两个项目的持久化实现：
+
+| 项目 | 维护与许可 | 实现、依赖和已知限制 | 本仓库采用方式 |
+|---|---|---|---|
+| [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) | 29,591 星，2026-11-12 有提交；[问题 #5270](https://github.com/python-telegram-bot/python-telegram-bot/issues/5270) 有 7 条讨论且已关闭；API 许可摘要 GPL-3.0，所读文件头明确 LGPL-3.0-or-later，使用时须以具体许可文件为准 | [`BasePersistence`](https://github.com/python-telegram-bot/python-telegram-bot/blob/master/src/telegram/ext/_basepersistence.py) 按 chat_id 读写状态，框架异步处理，使用 HTTPX；持久化文档指出不要保存带旧 Token 的 Bot 实例，并提示并发刷新约束；不会提供任意聊天历史读取 | 参考按聊天持久化状态的思路；沿用现有 requests/D1，不引入框架或复制源码 |
+| [aiogram](https://github.com/aiogram/aiogram) | 5,936 星，2026-11-10 有提交，MIT；[PR #2003](https://github.com/aiogram/aiogram/pull/2003) 有响应且已关闭 | [`StorageKey` / `BaseStorage`](https://github.com/aiogram/aiogram/blob/dev-3.x/aiogram/fsm/storage/base.py) 把 chat_id 纳入存储键，异步框架使用 aiohttp，持久化后端可选 Redis；PR #2003 记录复制消息时元数据丢失，说明不能凭消息显示猜测发送内容 | 参考存储按聊天隔离；保留现有 `(chat_id, video_id)` 与实际 message_id，不增加 Redis、aiohttp 或聊天爬取 |
+
+仓库文档采用 GitHub 官方 [Contents API](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents)：读取运行分支现有文件 SHA，再创建或更新唯一的 `docs/latest.md`。使用现有 requests 与工作流短期 [GITHUB_TOKEN](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)，仅同步 job 增加 contents: write，无新长期密钥。403/409 直接报未完成，不强推或自行扩权。只在 GitHub Actions 自动提交；手动在其他环境运行脚本仅写本机文档，部署验收仍以正式 Actions 为准。同步工作流的 contents 写入不用于修改代码或其他文件。

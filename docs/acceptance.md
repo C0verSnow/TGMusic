@@ -1,6 +1,6 @@
 # 真实服务与远端 CI 验收记录
 
-本文件区分“代码有测试”和“真实服务已跑通”。最新进展见文末 Issue #5；Issue #3 已完成两个真实新 Runner 的登录恢复、指定歌单读取、91 首基线和无新增不重复。禁止本地编译验证；本轮用户另行明确允许预构建 Docker 的本地真实账号排查，没有进行本地镜像构建或编译。
+本文件区分“代码有测试”和“真实服务已跑通”。最新进展见文末 Issue #7；Issue #3 已完成两个真实新 Runner 的登录恢复、指定歌单读取、91 首基线和无新增不重复。禁止本地编译验证；本轮用户另行明确允许预构建 Docker 的本地真实账号排查，没有进行本地镜像构建或编译。
 
 ## 已有远端证据
 
@@ -16,10 +16,10 @@
 
 | 验收项 | 证据或现状 |
 |---|---|
-| AT-01/02/04 新增、无新增、不重复 | `test_baseline_then_only_new_and_no_repeat` |
+| AT-01/02/04 新增、无新增、不重复 | `test_sent_a_b_then_only_c_and_no_repeat` |
 | AT-03 发送失败保留重试 | `test_failure_is_retried_without_resending_success` |
 | AT-05 新 Runner 恢复历史 | D1 为持久化来源；SQLite 测试已覆盖重用历史，真实跨 Runner 已验收：91 首基线由下一台 Runner 恢复，见 Issue #3 |
-| AT-06 首次基线/all | `test_all_mode_and_global_budget`，每目标单独 baseline |
+| AT-06 首次补发与旧基线迁移 | `test_all_mode_and_global_budget`、`test_legacy_baseline_is_unsent_and_is_backfilled_once`；Issue #7 起 baseline 不再跳过 |
 | AT-07 登录失败保留状态 | 主流程在读列表/修改歌曲状态前检查；真实失效账号待验收 |
 | AT-08 未授权音源回退 | `test_audio_requires_explicit_permission`、cipher stream fallback；实际播放待验收 |
 | AT-09 加密档案恢复 | 完整 ini/User Data 自动测试通过；真实 R2 档案已上传并读回核对，见下文 |
@@ -27,7 +27,7 @@
 | AT-14/15/16 Mihomo/TUN/出口 | 配置、路由、美国出口和固定代理已实现；真实代理节点待提供与验收 |
 | AT-17/18 音频发送 | HTTP 发送/重试路径有测试；专用测试 Bot 已验证文本收发、默认私聊等于 Owner；真实音频和群组待验收 |
 | AT-19/20 白名单与入群不自动授权 | Worker `guest has help only...`、admin scope 测试通过 |
-| AT-21/22/23 多目标与隔离失败 | `test_targets_are_independent_and_new_target_baselines` |
+| AT-21/22/23 多目标与隔离失败 | `test_targets_are_independent_and_new_target_sends_missing_songs` |
 | AT-24 存储失败保留数据 | receipt 恢复、历史丢失拒绝发送、租约、档案完整性与 S3 ETag 冲突测试通过 |
 | AT-25 Webhook Secret | Worker `webhook rejects missing/wrong secret...` |
 | AT-26 触发 Actions | Worker `owner dispatches once...`；细粒度触发 Token 已配置且通过 Actions 只读 API 验证；令牌已真实触发 bootstrap 与 sync；Worker 指令入口仍待部署 |
@@ -158,3 +158,16 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 `TGMUSIC_ENABLED=false` 保持到 PR review 合并：GitHub schedule 只运行默认分支，提前打开会执行 main 中旧五分钟 cron。合并后才启用并核对六小时调度。
 
 本轮仅本地代码阅读、AST / JavaScript 语法和差异静态检查，没有本地构建、编译、测试或冒烟。已在 GitHub 检索并比较 Infisical、workers-sdk、yt-dlp、pytubefix，详见设计与下载研究文档。
+
+## Issue #7：发送记录与 docs/latest.md
+
+用户确认使用现有发送成功记录核对，并把歌曲清单随同步自动提交到仓库 docs。原 Issue #3/#5 的 baseline 测试是历史证据；新逻辑会补发这些未实际发送的旧歌曲，首次运行仍受每轮预算限制。
+
+本轮新增/更新的正式回归：
+
+- SQLite 执行正式迁移和 History：A/B 已发送时只发 C，再次运行不重发；旧 baseline 补发一次；新聊天独立补发；预算剩余、失败、pending、R2 回执恢复、其他聊天和特殊歌名展示。
+- 主入口使用正式 History / sync_targets：scheduled/manual 均核对补发；GitHub 发布失败或预算/失败/待核对/暂停目标不算完成；结果在发布和备份之后回原聊天。
+- 真实 HTTP 夹具调用正式 requests 发布代码：首次创建、运行分支、已有 SHA 更新、内容不变不提交、403/409 不强推、缺 Token/tag 拒绝。
+- Worker 指令回归：私聊/群组/Admin 的发送范围与结果回执聊天传入 Actions；“已请求”不冒充“同步完成”。
+
+远端 CI 结果待补。没有执行本地测试、构建、编译或冒烟脚本。本轮没有部署 feature Worker、没有触发真实补发或修改生产发送记录；PR 合并后正式 /sync 才会执行新逻辑。

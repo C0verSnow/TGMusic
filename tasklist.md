@@ -95,6 +95,12 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794575658] 通过本仓库 .env 的 Infisical 启动配置，只读查询真实 D1，调用正式 History.export 生成 docs/latest.md，标注本次未核对歌单；没有发消息或修改生产历史。删除旧根目录空 latest.md。已完成 Python AST 和差异静态检查，准备推送 feature 分支，由现有远端 CI 执行测试。GitHub 已比较 python-telegram-bot 与 aiogram，链接与限制写入 docs/design.md。
+
+- [1794575492] 用户确认以已有成功发送记录核对旧歌，旧 baseline 需要补发；并确认 docs/latest.md 每次同步后自动提交到仓库。已修改按聊天发送判断、未完成计数、结果回原聊天、GitHub 文档发布；正在补正式 SQLite / HTTP 回归和文档，全部测试交远端 CI。
+
+- [1794575181] 开始 Issue #7：已读取正文与补充说明，基于最新 origin/main 创建 feature/issue-7-latest-sync。核对 latest 导出、按聊天去重和 /sync 完成提示；已向用户确认 Bot 无法读取任意旧聊天记录时的数据来源。只做静态检查，测试交现有远端 CI。
+
 - [1794570324] Music 群已真实收到 MP3，D1 为 sent/audio、message_id=7、attempts=1，tg history 读到同首歌曲文件消息。已请用户点播放确认，并再次用真实群指令做不重发回归。Secret Sync 临时标记自动到达 Worker，lastSyncedAt 更新至 11:43:21.568Z，已开始清理临时键，业务密钥值保持原样。
 
 - [1794570257] 93ef185 的 push CI 43418629071 和 PR CI 43418637654 全通过：Python 43 项、Worker 8 项及打包、push Docker 浏览器。真实 check-audio 43418750075 得到有效 MP3 4,335,021 字节；已移除诊断脚本对旧 player 接口的先决依赖。Music 群真实 /sync 触发 43419183416，正在发送音频。另在本应用 Secret Sync 源目录加临时验收标记，检查真实变更自动触发，验证后清理，不改业务密钥值。
