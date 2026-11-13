@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+.wrangler/
+node_modules/
+chrome-profile/
+*.enc
+*.tar*
+config/mihomo*.yaml
+*.log
+.DS_Store
+
+.runtime/
