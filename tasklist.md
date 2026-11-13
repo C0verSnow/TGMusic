@@ -20,6 +20,8 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794588252] Issue #11：首个代码提交 1166f8c 已推送，PR #13 为草稿；PR 远端 CI 43465310408 已通过 Python、Worker 用例和打包，push 的 Docker 检查也通过。新正式 Bot 已在真实 Owner 私聊 /start，并成为原 Music 群管理员；正在迁移两处 Token 和 Webhook，原 184 条历史保持。
+
 - [1794588080] Issue #11：群内 /addtarget 默认本群音频，支持 link，沿用原权限、审计与去重；新增真实 SQLite 和 HTTP 回归，更新正式名称、头像、迁移与群内用法。已通过 Python AST、Node 语法和差异静态检查；未运行本地测试、编译或构建。GitHub 已比较 python-telegram-bot/aiogram，继续沿用原依赖。准备提交代码，远端 CI 后完成线上迁移。
 
 - [1794587950] Issue #11：用户确认名称 TGMusic，并选择新建 @C0verSnow_TGMusic_bot 后迁移。已通过本机 Telegram 登录会话在 BotFather 创建成功，Token 仅保存忽略目录；已用内置图像工具生成原创头像并保存 PNG 与 Telegram 要求的 JPG。
