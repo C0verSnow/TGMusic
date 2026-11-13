@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path('src').resolve()))
-from browser_session import BrowserSession, detect_auth, resume_youtube_sign_in
+from browser_session import BrowserSession, detect_auth, dismiss_youtube_consent, resume_youtube_sign_in
 from cryptography.fernet import Fernet
 
 
@@ -17,9 +17,10 @@ class BrowserRuntimeTests(unittest.TestCase):
     def test_sign_in_resumes_existing_session_and_leaves_challenges_for_user(self):
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):
-                if self.path == '/ServiceLogin':
+                if self.path in {'/ServiceLogin', '/decline'}:
                     self.send_response(302)
-                    self.send_header('Set-Cookie', 'tgmusic_auth=valid; Path=/')
+                    if self.path == '/ServiceLogin':
+                        self.send_header('Set-Cookie', 'tgmusic_auth=valid; Path=/')
                     self.send_header('Location', '/')
                     self.end_headers()
                     return
@@ -29,6 +30,8 @@ class BrowserRuntimeTests(unittest.TestCase):
                 self.end_headers()
                 if self.path == '/challenge':
                     body = '<form><input type="password"></form>'
+                elif self.path == '/consent.youtube.com':
+                    body = '<form action="/decline"><button aria-label="Reject all">Reject all</button></form>'
                 else:
                     body = ("<script>window.ytcfg={get:k=>({LOGGED_IN:" + str(logged).lower() +
                             ",INNERTUBE_CONTEXT:{client:{}}})[k]};</script>"
@@ -49,7 +52,9 @@ class BrowserRuntimeTests(unittest.TestCase):
                     browser_path='/usr/bin/google-chrome', browser_headless=False)
                 browser = BrowserSession(config, None)
                 origin = f'http://127.0.0.1:{server.server_port}'
-                browser.start(origin + '/')
+                browser.start(origin + '/consent.youtube.com')
+                self.assertEqual(detect_auth(browser.page), 'UNKNOWN')
+                dismiss_youtube_consent(browser.page)
                 self.assertEqual(detect_auth(browser.page), 'EXPIRED')
                 self.assertEqual(resume_youtube_sign_in(browser.page), 'VALID')
                 browser.page.get(origin + '/challenge')

@@ -86,3 +86,10 @@ PR #2 合并后，`sync.yml` 已注册在默认分支。原来的 job 开关同�
 
 
 新 Runner 暴露的网络误判：匿名 Python 请求拿到 HTTP 200，但响应不包含 `INNERTUBE_CONTEXT`，旧版把它判为网络不通，立即要求未配置的 Mihomo。网络探测现在只判断 HTTP 成功；应用和登录状态仍由恢复档案后的真实浏览器与收藏 API 判断，UNKNOWN / 收藏读取失败仍按原流程尝试备用代理。只记录失败 HTTP 状态或异常类型，不记录网页和凭证，也不再把缺代理配置描述成已证实被封锁。用户明确要求直连正常时不启用 Mihomo。
+
+
+本地 Docker 实测进一步定位到正常页面流程缺失：原档案完整恢复后，Google Cookie 仍可使用，但 YouTube 需要点一次 Sign in 才会完成 `ServiceLogin → CheckCookie → SetSID` 跳转。用户亲自只点击 Sign in 后即恢复 VALID，不能据此宣称 Google 会话已经失效。本次在页面检测前处理已实际遇到的 `consent.youtube.com`，拒绝可选 Cookie 后返回 Music；Music 显示未登录时沿页面现有 Sign in 链接继续正常跳转。遇到密码/验证码仍停止，不自行填写或绕过验证。
+
+依照 [DrissionPage 4.1.1.4 等待文档](https://www.drissionpage.cn/browser_control/waiting/)等待实际导航和文档加载；不自行实现 OAuth 或 Cookie 解密。另读取固定镜像 revision [LinuxServer Chromium 启动脚本](https://github.com/linuxserver/docker-chromium/blob/c4bbd54b9bb6a505f0decb422214c39dfdae7650/root/usr/bin/wrapped-chromium)，并在实际浏览器 `chrome://version` 核对目录为 `/config/.config/chromium/Default`，与归档根一致。用户明确选择仅保留完整 Chromium User Data，未扩展到整个容器 HOME，也无需新增归档格式。
+
+用户提供的 `PLc_u7T_eRp6c` 已由正式读取器读取 91 首，原 LM 为 0；按用户要求将 TGMusic Infisical 的 `YOUTUBE_PLAYLIST_ID` 设置为此 ID。网页提示隐藏 40 个不可用视频；不把这些视频伪造为可下载或可发送项目。归档和账号密钥不写入 Git。

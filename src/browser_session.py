@@ -79,6 +79,8 @@ class BrowserSession:
         return self.page
 
     def detect_auth(self):
+        if urlsplit(self.page.url).hostname == "consent.youtube.com":
+            dismiss_youtube_consent(self.page)
         self.auth_state = detect_auth(self.page)
         if self.auth_state == "EXPIRED" and urlsplit(self.page.url).hostname == "music.youtube.com":
             self.auth_state = resume_youtube_sign_in(self.page)
@@ -117,6 +119,17 @@ class BrowserSession:
             Path(encrypted_copy).chmod(0o600)
         self.etag = self.r2.versioned_put(self.config.r2_profile_object, encrypted, self.etag, metadata)
         self.digest = digest
+
+
+def dismiss_youtube_consent(page):
+    reject = page.ele('css:button[aria-label="Reject all"]', timeout=5)
+    if not reject:
+        raise SyncError("YouTube consent page requires manual review")
+    logging.info("Rejecting optional YouTube cookies before checking sign-in")
+    reject.click(by_js=True)
+    if not page.wait.url_change("consent.youtube.com", exclude=True, timeout=20, raise_err=False):
+        raise SyncError("YouTube consent page did not finish; manual review required")
+    page.wait.doc_loaded(timeout=20)
 
 
 def resume_youtube_sign_in(page, timeout=20):
