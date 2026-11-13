@@ -5,7 +5,7 @@
 依据机器人发送成功记录与 Telegram 消息 ID 核对；不是完整聊天历史，也不检测消息被删除。
 音频目标只有 audio 算完成，旧 link 会补音频；旧 baseline 算未发送，待核对项目不会自动重发。
 
-清单生成时间（UTC）：2026-11-13T17:13:20+00:00
+清单生成时间（UTC）：2026-11-13T17:30:29+00:00
 
 ## 聊天 -1004447109031
 
@@ -115,48 +115,48 @@
 |---|---|---|---|---|---|---|---|
 | -gqfAzw6FQo | Always Online | 林俊傑 | 已发送 | audio | 15 | 2026-11-13T17:02:55+00:00 | 是 |
 | 0cZ3EkBmzpU | 我們的歌 - Our Song | Wang Leehom | 未发送 |  |  |  | 是 |
-| 0dLezZIZOAQ | It&#x27;s You | HENRY | 未发送 |  |  |  | 是 |
+| 0dLezZIZOAQ | It&#x27;s You | HENRY | 已发送 | audio | 37 | 2026-11-13T17:20:13+00:00 | 是 |
 | 1YUV6jweYHE | 心跳 - Heart Beat | Wang Leehom | 未发送 |  |  |  | 是 |
 | 1hOfUcLaqxs | 盛哲 - 在你的身边【我以为忘了想念】By Your Side (Official Lyric Video) | 盛哲 | 未发送 |  |  |  | 是 |
-| 1qlndQwwVws | Phone Kisses | suhmeduh | 未发送 |  |  |  | 是 |
+| 1qlndQwwVws | Phone Kisses | suhmeduh | 已发送 | audio | 44 | 2026-11-13T17:26:01+00:00 | 是 |
 | 4ccnKDx1bHk | Creepin&#x27; up on You | Darren Hayes | 已发送 | audio | 26 | 2026-11-13T17:10:50+00:00 | 是 |
 | 4yusD9y7T5Y | 陳冠希 / MC仁 / 廚房仔 - Everywhere we go Official MV - 官方完整版MV | Golden Dynamic - YouTube Certified MCN | 未发送 |  |  |  | 是 |
 | 5IcwnWPr_eM | 倒帶 | 周杰倫 | 未发送 |  |  |  | 是 |
 | 5scVBb4n-Vo | 讀心術 | 卓文萱 | 已发送 | audio | 10 | 2026-11-13T16:59:26+00:00 | 是 |
-| 6-vtzVsxRrw | SCIENTISTS &amp; ENGINEERS (feat. Future &amp; Eryn Allen Kane) | Killer Mike, André 3000 | 未发送 |  |  |  | 是 |
+| 6-vtzVsxRrw | SCIENTISTS &amp; ENGINEERS (feat. Future &amp; Eryn Allen Kane) | Killer Mike, André 3000 | 已发送 | audio | 46 | 2026-11-13T17:27:27+00:00 | 是 |
 | 6Gse3_wBULE | 浪漫手機 | 周杰倫 | 未发送 |  |  |  | 是 |
 | 7r_g40NRA_U | 遐想 | 郑润泽 | 未发送 |  |  |  | 是 |
 | 9e3Ramt_3xE | April Encounter（《當我飛奔向你》插曲） | 很美味 | 已发送 | audio | 17 | 2026-11-13T17:04:19+00:00 | 是 |
 | B-1ZzOp0UUA | Call of Silence | Hiroyuki SAWANO | 已发送 | audio | 23 | 2026-11-13T17:08:41+00:00 | 是 |
-| BOFr8uciWmM | RADIO | HENRY | 未发送 |  |  |  | 是 |
+| BOFr8uciWmM | RADIO | HENRY | 已发送 | audio | 45 | 2026-11-13T17:26:44+00:00 | 是 |
 | CZ8SYbt1P3g | 忘不了的是你 | 刘大壮 | 未发送 |  |  |  | 是 |
 | Div-Wp3ggew | BACK SEAT | JYJ | 已发送 | audio | 21 | 2026-11-13T17:07:18+00:00 | 是 |
-| DqO1lLavWGo | Stitches | Shawn Mendes | 未发送 |  |  |  | 是 |
+| DqO1lLavWGo | Stitches | Shawn Mendes | 已发送 | audio | 49 | 2026-11-13T17:29:44+00:00 | 是 |
 | EU9-clxTh4A | 暗號 | 周杰倫 | 未发送 |  |  |  | 是 |
 | FrIbGkDKsH8 | 苦茶子 | Starling8, MoreLearn 27, FIVESTAR | 未发送 |  |  |  | 是 |
 | FuneGa0agZU | 50 Feet (Remix) (feat. SHIMICA) | SoMo | 已发送 | audio | 12 | 2026-11-13T17:00:46+00:00 | 是 |
-| G3UeoZechSg | i hate u, i love u (feat. Olivia O&#x27;brien) | gnash | 未发送 |  |  |  | 是 |
-| GC-_tWEUIH8 | Follow | 梨冻紧, Wiz_H张子豪 | 未发送 |  |  |  | 是 |
+| G3UeoZechSg | i hate u, i love u (feat. Olivia O&#x27;brien) | gnash | 已发送 | audio | 35 | 2026-11-13T17:18:38+00:00 | 是 |
+| GC-_tWEUIH8 | Follow | 梨冻紧, Wiz_H张子豪 | 已发送 | audio | 31 | 2026-11-13T17:15:37+00:00 | 是 |
 | GmoLLifq6SY | 忘不掉的你 | h3R3 | 未发送 |  |  |  | 是 |
 | GqWYJT-iMTw | Baby (feat. Ludacris) | Justin Bieber | 已发送 | audio | 19 | 2026-11-13T17:05:53+00:00 | 是 |
-| GwGfHjOnwsI | Paris in the Rain | Lauv | 未发送 |  |  |  | 是 |
+| GwGfHjOnwsI | Paris in the Rain | Lauv | 已发送 | audio | 43 | 2026-11-13T17:25:19+00:00 | 是 |
 | Gx-SOE302Ys | 愛你沒差 | 周杰倫 | 未发送 |  |  |  | 是 |
 | HIpnPLiD_6Y | Attachments (feat. Taliban Glizzy) | Pressa | 已发送 | audio | 18 | 2026-11-13T17:05:00+00:00 | 是 |
 | Hp6ihd4crKI | Flying Bird (Ins.) | S087 | 已发送 | audio | 29 | 2026-11-13T17:13:19+00:00 | 是 |
 | IEFW6NRyyf0 | 还是会想你 | H3r3, 林达浪 | 未发送 |  |  |  | 是 |
-| IIY0yDePTpw | One Time | Justin Bieber | 未发送 |  |  |  | 是 |
+| IIY0yDePTpw | One Time | Justin Bieber | 已发送 | audio | 42 | 2026-11-13T17:24:26+00:00 | 是 |
 | IputLXy4dOw | Little do you know (praesun cover) | Praesun | 未发送 |  |  |  | 是 |
 | JXb04PcA7rg | Coco Elva Tia | Masiwei | 已发送 | audio | 25 | 2026-11-13T17:10:06+00:00 | 是 |
 | JYmFu9Nx2Fs | 会不会 (正式版) | 刘大壮 | 未发送 |  |  |  | 是 |
 | JyJ01CRfjSY | 我落淚．情緒零碎 | 周杰倫 | 未发送 |  |  |  | 是 |
-| MUzN3aqePII | Six Degrees | 派偉俊, 周杰倫 | 未发送 |  |  |  | 是 |
+| MUzN3aqePII | Six Degrees | 派偉俊, 周杰倫 | 已发送 | audio | 47 | 2026-11-13T17:28:09+00:00 | 是 |
 | Nxwlj6p7ras | 聖誕星 (feat. 楊瑞代) | 周杰倫 | 未发送 |  |  |  | 是 |
 | O3UxZrf0AAk | 蒲公英的約定 | 周杰倫 | 未发送 |  |  |  | 是 |
 | OQjOfjBal3Y | 你不知道的事 - All The Things You Never Knew | Wang Leehom | 未发送 |  |  |  | 是 |
 | OQwnI4HWZLI | 說好不哭 | 周杰倫, 五月天 阿信 | 未发送 |  |  |  | 是 |
 | PlwzL4ly-Bc | 小孩 | 罗森涛 | 未发送 |  |  |  | 是 |
 | QLCpqdqeoII | Die For You | The Weeknd | 未发送 |  |  |  | 是 |
-| QLxy9dYHrcg | The truth that you leave | Pianoboy高至豪 | 未发送 |  |  |  | 是 |
+| QLxy9dYHrcg | The truth that you leave | Pianoboy高至豪 | 已发送 | audio | 50 | 2026-11-13T17:30:26+00:00 | 是 |
 | QMqizmScJfI | 龍捲風 | 周杰倫 | 已发送 | audio | 14 | 2026-11-13T17:02:13+00:00 | 是 |
 | Qq2ix2BewvA | 一路向北 | 周杰倫 | 未发送 |  |  |  | 是 |
 | ROGuzF_K-_k | 回到過去 | 周杰倫 | 未发送 |  |  |  | 是 |
@@ -164,16 +164,16 @@
 | TKXYh_GLnGo | 開不了口 | 周杰倫 | 未发送 |  |  |  | 是 |
 | UeWot3ZGNHs | Dilemma (feat. Kelly Rowland) | Nelly | 已发送 | audio | 27 | 2026-11-13T17:11:45+00:00 | 是 |
 | UwuAPyOImoI | TAEYANG - 눈,코,입 (EYES, NOSE, LIPS) M/V | TAEYANG | 未发送 |  |  |  | 是 |
-| V1Q6y2qwPzc | Ne-Yo - So Sick | Pizza Music | 未发送 |  |  |  | 是 |
+| V1Q6y2qwPzc | Ne-Yo - So Sick | Pizza Music | 已发送 | audio | 48 | 2026-11-13T17:28:51+00:00 | 是 |
 | V6yUR0RsAbg | 加油 | JJ林俊傑 | 未发送 |  |  |  | 是 |
 | Wlwk9osZ9Mc | 說了再見 | 周杰倫 | 未发送 |  |  |  | 是 |
-| XDjB9E3YtUE | Heat Waves | Glass Animals | 未发送 |  |  |  | 是 |
+| XDjB9E3YtUE | Heat Waves | Glass Animals | 已发送 | audio | 38 | 2026-11-13T17:21:07+00:00 | 是 |
 | aJHeYQ1CiKU | Maze | step.jad | 未发送 |  |  |  | 是 |
 | aXjMogbOrzs | 愛錯 - Wrong Love | Wang Leehom | 未发送 |  |  |  | 是 |
-| adrGakL11Ss | Love Story | Taylor Swift | 未发送 |  |  |  | 是 |
-| c84VnpGFbrw | Haru Haru | BIGBANG | 未发送 |  |  |  | 是 |
+| adrGakL11Ss | Love Story | Taylor Swift | 已发送 | audio | 39 | 2026-11-13T17:22:00+00:00 | 是 |
+| c84VnpGFbrw | Haru Haru | BIGBANG | 已发送 | audio | 33 | 2026-11-13T17:17:12+00:00 | 是 |
 | cVWSIddgDWo | Fallin&#x27; Out | Keyshia Cole | 已发送 | audio | 28 | 2026-11-13T17:12:37+00:00 | 是 |
-| czxE8oFEBmA | Go Hard | Lil Baby | 未发送 |  |  |  | 是 |
+| czxE8oFEBmA | Go Hard | Lil Baby | 已发送 | audio | 32 | 2026-11-13T17:16:29+00:00 | 是 |
 | dMIQfW6XQ-A | 軌跡 | 周杰倫 | 未发送 |  |  |  | 是 |
 | dozAVKrIBBM | Red Scarf (&quot;Till We Meet Again&quot; Movie Theme Song) | WeiBird | 未发送 |  |  |  | 是 |
 | e4ppGoPYuBI | 算什麼男人 | 周杰倫 | 未发送 |  |  |  | 是 |
@@ -183,8 +183,8 @@
 | g6aqn84d6Io | 妳聽得到 | 周杰倫 | 未发送 |  |  |  | 是 |
 | gHk8MIx6nfY | 第57次取消发送 | 菲菲公主 | 未发送 |  |  |  | 是 |
 | h9Zdt0qmDhg | 白色風車 | 周杰倫 | 未发送 |  |  |  | 是 |
-| h9hdorPqukU | IF YOU | BIGBANG | 未发送 |  |  |  | 是 |
-| hR51yCq5oco | Off The Hook | Jeff Jarvis | 未发送 |  |  |  | 是 |
+| h9hdorPqukU | IF YOU | BIGBANG | 已发送 | audio | 34 | 2026-11-13T17:17:55+00:00 | 是 |
+| hR51yCq5oco | Off The Hook | Jeff Jarvis | 已发送 | audio | 41 | 2026-11-13T17:23:33+00:00 | 是 |
 | hlkhfvhYxhI | 別問很可怕 - Don&#x27;t Ask | J.Sheon | 未发送 |  |  |  | 是 |
 | jFXifxIRBKU | Call You Tonight | Whitney Houston | 已发送 | audio | 24 | 2026-11-13T17:09:24+00:00 | 是 |
 | jqbWLXwfVGA | I love u but i gonna get home (Drum Version) | ET, Happer, Wu Mian Xiao Sheng, Gu Gu | 未发送 |  |  |  | 是 |
@@ -199,11 +199,11 @@
 | r747U7NmK5g | Begging You (Guide ver.) (Bonus Track) | 2LSON | 已发送 | audio | 22 | 2026-11-13T17:07:59+00:00 | 是 |
 | sXP4uMm0teA | Angel | Yoonmirae with Tiger JK &amp; Bizzy | 已发送 | audio | 16 | 2026-11-13T17:03:37+00:00 | 是 |
 | uaqypTNjtFo | 太聰明 | 陳綺貞 | 未发送 |  |  |  | 是 |
-| vJ1leYOUCkw | Love you like I do | Jamillions | 未发送 |  |  |  | 是 |
+| vJ1leYOUCkw | Love you like I do | Jamillions | 已发送 | audio | 40 | 2026-11-13T17:22:43+00:00 | 是 |
 | vTMAa6zZ7jY | 7 Years | Lukas Graham | 已发送 | audio | 13 | 2026-11-13T17:01:29+00:00 | 是 |
 | vpBYwcf1p9I | 說好的幸福呢 | 周杰倫 | 未发送 |  |  |  | 是 |
 | vxucCfcMFCk | 唯一 (三立/台視戲劇【戀愛是科學】插曲) | 告五人 | 未发送 |  |  |  | 是 |
-| wQN52ySvSeI | Imagination | Shawn Mendes | 未发送 |  |  |  | 是 |
+| wQN52ySvSeI | Imagination | Shawn Mendes | 已发送 | audio | 36 | 2026-11-13T17:19:31+00:00 | 是 |
 | zgQ6MvF9kC0 | 泡沫 | Swang多雷 | 未发送 |  |  |  | 是 |
 
 ## 聊天 5909140623
