@@ -40,7 +40,7 @@ Infisical 0.45.6 Linux amd64 包 SHA-256 为 `b427391e76113e351fa0509d6493cb4005
 
 | 项目 | 本轮核对的维护与许可 | 依赖与适用范围 | 决定 |
 |---|---|---|---|
-| [Cloudflare workers-sdk / Wrangler](https://github.com/cloudflare/workers-sdk) | 4719 星，近期持续提交，Apache-2.0；维护者已响应 [#13000](https://github.com/cloudflare/workers-sdk/issues/13000)，转为功能讨论 [#13169](https://github.com/cloudflare/workers-sdk/discussions/13169) | 已安装 CLI 4.160.1；Node.js；可利用现有登录管理 R2/D1 | 实际读取 CLI help 及官方 `packages/wrangler/src/r2/helpers.ts` 对应实现，确认 `r2 object put` 没有 If-Match/If-None-Match 与自定义元数据参数；不用于替换档案条件上传 |
+| [Cloudflare workers-sdk / Wrangler](https://github.com/cloudflare/workers-sdk) | 4719 星，近期持续提交，Apache-2.0；维护者已响应 [#13000](https://github.com/cloudflare/workers-sdk/issues/13000)，转为功能讨论 [#13169](https://github.com/cloudflare/workers-sdk/discussions/13169) | 已安装 CLI 4.160.1；Node.js；可利用现有登录管理 R2/D1 | 实际读取 CLI help 及官方 [`packages/wrangler/src/r2/helpers/object.ts`](https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/r2/helpers/object.ts) 对应实现，确认 `r2 object put` 没有 If-Match/If-None-Match 与自定义元数据参数；不用于替换档案条件上传 |
 | [boto3](https://github.com/boto/boto3) | 9937 星，近期持续提交，Apache-2.0；项目现有依赖及远端存储测试已经使用 | Python、botocore；需桶级 R2 S3 凭证；支持现有条件请求和元数据 | 保留现有客户端，继续先写独立版本，再条件更新主对象，不引入新 SDK |
 
 官方 [R2 CLI 参考](https://developers.cloudflare.com/workers/wrangler/commands/r2/)与 [R2 条件操作](https://developers.cloudflare.com/r2/api/s3/conditional-operations/)分别说明两个接口的能力。CLI 优先意味着先检查其能力；不会把缺失的条件上传换成“先 get 再无条件 put”，也不假定官方 REST 对象上传接口支持未列出的条件和校验元数据。以上仅参考经过核对的设计，没有复制开源实现。
