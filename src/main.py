@@ -7,6 +7,7 @@ from browser_session import BrowserSession
 from cloudflare_storage import D1, R2
 from config import Config
 from history import History
+from latest_report import publish_latest
 from models import SyncError
 from proxy import Network
 from sync import sync_targets
@@ -50,20 +51,28 @@ def main():
                                target_chat_ids=config.sync_target_chat_ids)
         history.assert_lease()
         export = r2.get("sync/latest.md", optional=True)
-        r2.put("sync/latest.md", history.export(), etag=export[1] if export else None, create=export is None)
+        report = history.export(songs, summary["targets"])
+        r2.put("sync/latest.md", report, etag=export[1] if export else None, create=export is None)
+        publish_latest(report)
         browser.close()
         browser.backup()
+        reply_chat_id = config.sync_reply_chat_id or config.telegram_owner_id
+        unavailable = set(config.sync_target_chat_ids or ()) - set(summary["targets"])
+        if summary["remaining"] or not summary["targets"] or unavailable:
+            telegram.notify(reply_chat_id, f"同步尚未完成：剩余 {summary['remaining']} 首，{summary['failed']} 项失败，"
+                            f"{summary['held']} 项待核对；本次核对 {len(summary['targets'])} 个目标，"
+                            f"{len(unavailable)} 个指定目标未启用或已移除。"
+                            "docs/latest.md 已更新；请查看清单后再次 /sync，待核对项目需 Owner 处理。")
+            return 1
         if config.sync_target_chat_ids is None:
             history.completed()
-        if summary["held"] or summary["failed"]:
-            telegram.notify(config.telegram_owner_id, f"TGMusic: {summary['failed']} 项失败，{summary['held']} 项结果待核对；暂停目标：{summary['paused']}。请查看 Actions 日志。")
-            return 1
+        telegram.notify(reply_chat_id, f"同步完成：本次发送 {summary['success']} 首，所选目标歌单均已发送，docs/latest.md 已更新。")
         return 0
     except Exception as error:
         message = str(error) if isinstance(error, SyncError) else type(error).__name__ + "; details suppressed"
         logging.error("%s", message)
         try:
-            telegram.notify(config.telegram_owner_id, "TGMusic stopped: " + message)
+            telegram.notify(config.sync_reply_chat_id or config.telegram_owner_id, "同步未完成，TGMusic stopped: " + message)
         except Exception:
             logging.error("Owner notification unavailable")
         return 1

@@ -1,4 +1,4 @@
-import json
+import html
 import time
 import uuid
 
@@ -47,14 +47,7 @@ class History:
             raise StorageError("History is incomplete; restore D1 instead of initializing")
         return {row["video_id"]: row for row in rows}
 
-    def initialize_target(self, target, songs, mode):
-        if mode == "baseline":
-            # json_each keeps the entire baseline atomic without one request per song.
-            self.db.query(
-                "INSERT OR IGNORE INTO history(chat_id,video_id,title,artist,status) "
-                "SELECT ?,json_extract(value,'$.video_id'),json_extract(value,'$.title'),"
-                "json_extract(value,'$.artist'),'baseline' FROM json_each(?)",
-                (target["chat_id"], json.dumps([vars(song) for song in songs])))
+    def initialize_target(self, target):
         self.db.query("UPDATE targets SET initialized=1 WHERE chat_id=?", (target["chat_id"],))
 
     def pending(self, chat_id, song):
@@ -79,14 +72,40 @@ class History:
     def completed(self):
         self.db.query("UPDATE installation SET last_success=? WHERE id=1", (int(time.time()),))
 
-    def export(self):
-        rows = self.db.query("SELECT chat_id,video_id,status,delivery_mode,sent_at FROM history ORDER BY chat_id,video_id")
-        lines = ["# Telegram Sync History", "", "| chat_id | video_id | status | delivery_mode | sent_at |",
-                 "|---------|----------|--------|---------------|---------|"]
-        for row in rows:
-            lines.append("| " + " | ".join(str(row[k] or "") for k in
-                         ("chat_id", "video_id", "status", "delivery_mode", "sent_at")) + " |")
+    def export(self, songs=(), checked_chat_ids=()):
+        lines = ["# Telegram 歌曲同步清单", "", "<!-- 由 History.export 自动生成，请勿手工修改。 -->", "",
+                 "依据机器人发送成功记录与 Telegram 消息 ID 核对；不是完整聊天历史，也不检测消息被删除。",
+                 "只有“已发送”会跳过。旧 baseline 算未发送；待核对项目不会自动重发。", "",
+                 "清单生成时间（UTC）：" + utc_now(), ""]
+        labels = {"sent": "已发送", "baseline": "未发送", "pending": "待核对", "failed": "发送失败"}
+        playlist_ids = {song.video_id for song in songs}
+        targets = self.db.query("SELECT * FROM targets WHERE removed=0 ORDER BY chat_id")
+        for target in targets:
+            chat_id = target["chat_id"]
+            checked = chat_id in checked_chat_ids
+            records = self.records(chat_id)
+            entries = dict(records)
+            if checked:
+                for song in songs:
+                    entries.setdefault(song.video_id, {**vars(song), "status": "baseline"})
+            lines.extend([f"## 聊天 {chat_id}", "",
+                          ("启用" if target["enabled"] else "暂停") + "；" +
+                          ("本次已核对歌单" if checked else "本次未核对歌单，仅保留已有记录"), "",
+                          "| video_id | 歌曲 | 歌手 | 发送状态 | 类型 | Telegram 消息 ID | 发送时间（UTC） | 本次歌单 |",
+                          "|---|---|---|---|---|---|---|---|"])
+            for video_id, row in sorted(entries.items()):
+                values = (video_id, row["title"], row["artist"], labels[row["status"]],
+                          row.get("delivery_mode"), row.get("message_id"), row.get("sent_at"),
+                          ("是" if video_id in playlist_ids else "否") if checked else "未核对")
+                lines.append("| " + " | ".join(markdown_cell(value) for value in values) + " |")
+            lines.append("")
+        if not targets:
+            lines.append("暂无已授权目标。")
         return ("\n".join(lines) + "\n").encode()
+
+
+def markdown_cell(value):
+    return html.escape(str(value) if value is not None else "").replace("|", "&#124;").replace("\r", " ").replace("\n", " ")
 
 
 def receipt_key(chat_id, video_id):

@@ -20,6 +20,10 @@ on:
         description: 'Optional JSON array of authorized target chat IDs; empty means all'
         required: false
         default: ''
+      reply_chat_id:
+        description: 'Chat to receive the final sync result; empty means Owner'
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -27,6 +31,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   sync:
+    permissions:
+      contents: write
     if: github.event_name == 'workflow_dispatch' || vars.TGMUSIC_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -50,6 +56,8 @@ jobs:
           TGMUSIC_OPERATION: ${{ inputs.operation || 'sync' }}
           TGMUSIC_VIDEO_ID: ${{ inputs.video_id }}
           SYNC_TARGET_CHAT_IDS: ${{ inputs.target_chat_ids }}
+          SYNC_REPLY_CHAT_ID: ${{ inputs.reply_chat_id }}
+          GITHUB_TOKEN: ${{ github.token }}
           INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}

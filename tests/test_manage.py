@@ -22,14 +22,14 @@ class BootstrapTests(unittest.TestCase):
     def tearDown(self):
         self.db.connection.close()
 
-    def test_bootstrap_matches_installation_and_creates_owner_and_baseline_target(self):
+    def test_bootstrap_matches_installation_and_creates_owner_and_backfill_target(self):
         bootstrap(self.config, self.db, self.r2)
         installation = self.db.query('SELECT installation_id FROM installation')[0]
         self.assertEqual(json.loads(self.r2.objects['sync/installation.json']), installation)
         self.assertEqual(self.db.query('SELECT user_id,role FROM roles'), [{'user_id': 123, 'role': 'owner'}])
         target = self.db.query('SELECT * FROM targets')[0]
         self.assertEqual(target['chat_id'], 123)
-        self.assertEqual(target['initial_mode'], 'baseline')
+        self.assertEqual(target['initial_mode'], 'all')
         self.assertEqual(target['initialized'], 0)
         self.assertEqual(self.db.query('SELECT * FROM history'), [])
         with self.assertRaises(SyncError):
