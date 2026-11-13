@@ -29,9 +29,6 @@ def main():
         db = D1(config)
         history = History(db)
         installation = history.installation()
-        if (not is_manual()) and time.time() - installation["last_success"] < config.sync_interval_minutes * 60:
-            logging.info("SYNC_INTERVAL_MINUTES has not elapsed")
-            return 0
         history.acquire()
         leased = True
         r2 = R2(config)
@@ -124,11 +121,6 @@ def require_valid_auth(state, history):
     if state == "EXPIRED":
         history.set_auth(state)
     raise SyncError("Google auth " + state + "; sync stopped; existing backup preserved")
-
-
-def is_manual():
-    import os
-    return os.getenv("GITHUB_EVENT_NAME", "workflow_dispatch") != "schedule"
 
 
 if __name__ == "__main__":

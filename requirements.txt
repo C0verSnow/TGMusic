@@ -4,3 +4,5 @@ cryptography==50.0.2
 requests==2.34.2
 ytmusicapi==1.12.3
 PyYAML==6.0.3
+yt-dlp==2026.10.26
+yt-dlp-ejs==0.8.0

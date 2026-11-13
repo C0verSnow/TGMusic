@@ -131,3 +131,16 @@ test('admin sync dispatch is limited to assigned targets', async () => {
     assert.deepEqual(dispatched.data, { ref: 'main', inputs: { target_chat_ids: '[-100]' } });
   } finally { f.cleanup(); }
 });
+
+
+test('addressed sync in an authorized group dispatches only that group', async () => {
+  const f = fixture();
+  try {
+    await f.send('/sync@testbot', 1, -100);
+    assert.deepEqual(f.calls.find(x => x.url.includes('github')).data,
+      { ref: 'main', inputs: { target_chat_ids: '[-100]' } });
+    f.query('DELETE FROM command_limits');
+    await f.send('/sync@anotherbot', 1, -100);
+    assert.equal(f.calls.filter(x => x.url.includes('github')).length, 1);
+  } finally { f.cleanup(); }
+});

@@ -19,9 +19,9 @@ class YouTubeClient:
                                 "key:ytcfg.get('INNERTUBE_API_KEY'), user:ytcfg.get('SESSION_INDEX') || '0'};")
         self.context = bootstrap["context"]
         self.api_key = bootstrap["key"]
-        cookies = page.cookies(all_domains=True, all_info=True)
-        music_cookies = {c["name"]: c["value"] for c in cookies
-                         if c.get("domain", "").lstrip(".") in {"youtube.com", "music.youtube.com"}}
+        self.cookies = [cookie for cookie in page.cookies(all_domains=True, all_info=True)
+                        if cookie.get("domain", "").lstrip(".") in {"youtube.com", "music.youtube.com"}]
+        music_cookies = {c["name"]: c["value"] for c in self.cookies}
         self.sapisid = music_cookies.get("SAPISID") or music_cookies.get("__Secure-3PAPISID")
         if not self.sapisid or not self.context:
             raise SyncError("Google credentials unavailable")

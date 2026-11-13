@@ -1,9 +1,19 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
 ## 想做：
+- [1794570421] Issue #5 的 PR #6 交用户 review；合并后将 TGMUSIC_ENABLED=true，启用六小时定时。交付前 Worker 恢复指向 main，不依赖临时功能分支；不擅自合并。
+
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794570635] Issue #5 已按用户要求关闭；PR #6 已转待 review，未合并。真实音频、用户播放、两次去重、Worker / Webhook / 自动 Secret Sync 与功能 CI 已通过，收尾文档 79950de 继续由现有远端 CI 检查。Worker 指向 main，TGMUSIC_ENABLED=false，六小时定时和新下载器待 review 合并后生效；README、设计、研究与验收记录均已更新。本轮 GitHub 已检索同类项目，未进行本地编译验证。
+
+- [1794570528] Issue #5 全部功能验收完成：yt-dlp 真实下载、Music 群 MP3 与用户播放确认、音频再次同步不重发（43419573467）、Worker / Webhook / 自动 Secret Sync 均通过。a855036 的 push CI 43419593530 和 PR CI 43419602008 全通过；最新实现为 Python 43、Worker 8。Worker 已通过 --no-bundle 恢复 main（版本 bbcd5b82-2f4b-4ef9-8bca-7dc2163bbdd1），四项业务 Secrets 保留。准备提交收尾记录、PR 转待 review 并按要求关闭 Issue，不合并、不提前开启旧定时。
+
+- [1794570421] 用户已亲自确认 Music 群音频正常播放、有声音。真实群音频 sync 43419183416 全部成功，指定歌曲 sent/audio、message_id=7、attempts=1；私聊 link 记录保留。Secret Sync 自动事件已验收，临时标记已从 Infisical 和 Worker 清理，两端恢复四项业务密钥。没有进行本地编译验证。
+
+- [1794570059] Issue #5 阶段验收：真实 Worker、Webhook、Infisical 自动 Secret Sync、Music 群授权和 91 首基线、私聊样例链接发送已完成。重复同步 43417863729 为 182 已处理、0 新增/发送/失败/待核对；重复 Webhook update_id 的审计 5→5。实际音频仍未通过，不关闭 Issue、不把草稿 PR 当完成。
+
 - [1794554016] Issue #3 已完成并按用户要求关闭；PR #4 已转为待 review，未合并。真实 Runner 43382782005 自动登录、读取 91 首并建基线；下一台 43383234383 直接 VALID、91 首已处理、0 新增/发送/失败/待核对。D1 读回基线与预计条数均为 91，租约已释放；TGMUSIC_ENABLED=false。
 - [1794554016] 实现提交 2e4b71f 的 push CI 43383233679、PR CI 43383240442 全通过：Python 38 项、Worker 7 项、Worker 打包与 push Docker 浏览器。已更新 README、设计参考、验收表和历史状态说明；GitHub 已检索相关项目与官方源码，没有复制来源不明代码、没有新增依赖。
 - [1794554016] 本地测试仅在用户本轮明确授权后使用固定预构建 Docker；未构建镜像或本地编译。完整 ini/User Data 的原归档实现符合用户确认，修复点是 HTTP 探测、Cookie 选择页和正常 Sign in 跳转。临时 DEBUG 代码与第二个重放容器、明文目录已清理，3002 桌面保留供用户继续查看。
@@ -85,6 +95,34 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794570324] Music 群已真实收到 MP3，D1 为 sent/audio、message_id=7、attempts=1，tg history 读到同首歌曲文件消息。已请用户点播放确认，并再次用真实群指令做不重发回归。Secret Sync 临时标记自动到达 Worker，lastSyncedAt 更新至 11:43:21.568Z，已开始清理临时键，业务密钥值保持原样。
+
+- [1794570257] 93ef185 的 push CI 43418629071 和 PR CI 43418637654 全通过：Python 43 项、Worker 8 项及打包、push Docker 浏览器。真实 check-audio 43418750075 得到有效 MP3 4,335,021 字节；已移除诊断脚本对旧 player 接口的先决依赖。Music 群真实 /sync 触发 43419183416，正在发送音频。另在本应用 Secret Sync 源目录加临时验收标记，检查真实变更自动触发，验证后清理，不改业务密钥值。
+
+- [1794570136] yt-dlp 真实 check-audio 43418750075 成功，93ef185 push/PR CI 全通过。按用户此前“只让程序忘掉这一首”的授权，备份并只撤销 Music 群中该首未发送 baseline，预计条数同步为 90，用于群内真实音频发送；私聊已发送 link、message_id=18 的记录保持不变，未动其他歌曲。
+
+- [1794569956] 重复同步 43417863729 已成功，准备读取无新增/不重发日志；93ef185 已推送 yt-dlp 接入及真实下载回归，另行触发远端 check-audio。Secret Sync 后用明确 User-Agent 测得 Worker 缺失/错误 Secret 均返回原生 Forbidden，正确 Secret 返回 OK；先前 Python 默认 UA 被 Cloudflare 边缘拒绝，已纠正验证请求。
+
+- [1794569777] 远端音频诊断 43417558822 已定位：真实登录 VALID，但旧 player 接口 playable=false、音频地址 0；未发送消息或改歌曲历史。用户建议检索开源下载项目，按 research 技能委派后台研究；比较 yt-dlp 与 pytubefix 后接入锁定 yt-dlp 2026.10.26 + EJS 0.8.0，Runner 沿用现有 setup-node22。保留原授权清单、Cookie 域、代理不回落直连、49MB 上限、FFmpeg 和链接回退；新增实际 HTTP + yt-dlp + FFmpeg 回归，只在远端运行。
+
+- [1794569381] 用户已保存专用 Cloudflare Token，验证 active；用既有个人 Infisical CLI 会话建立 tgmusic-worker-secrets App Connection 和自动 Secret Sync（01fddc4a-8d48-480b-a168-1b96b552e9d2），状态 succeeded，四项 secret_text 已核对。私聊 sync 43415732090 成功：指定歌曲只发送一次 link、message_id=18、attempts=1；音频仍未通过。用户同意先做远端不发送的音频诊断，增加 check-audio 手动入口，复用正式实现，不引入新组件。
+
+- [1794568783] 按用户要求再次核对 Wrangler 支持的 OAuth scopes，确无 Token 创建权限。已按 Cloudflare 官方模板 URL 在浏览器打开预填表单：TGMusic Infisical Worker Secrets，仅当前账号 Workers Scripts Edit + Account Settings Read。群组 sync 43415724056 成功：VALID、91 首新群基线、发送 0，未动私聊。
+
+- [1794568674] PR CI 43415122375 第二次尝试已通过。真实 tg 群命令触发 sync 43415724056，私聊命令触发 43415732090；Worker 审计均 allowed，Bot 返回已请求同步。按用户要求复查 Wrangler auth/token/help/scopes：只有读取当前 OAuth 凭据和部署能力，没有创建长期 API Token 的命令，OAuth 的 Token 管理 API 返回 403；仍不能据此宣称持续 Secret Sync 完成。
+
+- [1794568613] 通过本机 tg 以真实 Owner 发出 /addtarget，Bot 返回“目标已授权”，D1 已新增 Music 群且保持首次基线。已继续发送群内 /sync 和私聊 /sync。浏览器接管实际被 macOS 辅助功能和 Chrome AppleEvents JavaScript 设置阻止，已请用户打开脚本控制或直接保存专用 Token。PR CI 的旧浏览器归档测试遇到 ContextLostError，只重跑失败任务。
+
+- [1794568478] 用户已明确同意只让程序忘掉指定歌曲：备份并删除私聊 gHk8MIx6nfY 的唯一 baseline 记录，同步更新该目标预计条数为 90；没有删已发送记录或其他歌曲。用户要求使用本机 tg 指令发送真实 Telegram 命令，并授权接管其已登录的 Cloudflare / Infisical 浏览器。
+
+- [1794568367] PR #6 已建草稿；a76aa52 的 push CI 43414821023 全通过（Python 39 项、Worker 8 项及打包、预构建 Docker 浏览器）。Wrangler 用 --no-bundle 与 IPv4 优先直接上传成功，Worker 版本 d2ecc348-cab2-4fdb-952b-1b0a00c9e39c。为继续联调先注入现有四项 Worker Secrets 并注册真实 Webhook；持续 Infisical Secret Sync 仍等专用 Token，二者不混为已完成。
+
+- [1794568283] a76aa52 已推送，远端 CI 43414821023 执行中。核对 Music 群 Owner 为群主、Bot 为管理员。真实 D1 显示指定歌曲已在旧基线，已询问是否只撤销该首 baseline；Infisical 无 Cloudflare App Connection，现有 OAuth 无创建 Token 权限，已请求用户把专用 Token 保存到本仓库 .env。Wrangler 无构建部署遇到连接失败，继续排查连接，不做本地测试。
+
+- [1794568144] 用户指定 gHk8MIx6nfY 并已新增到歌单，已写入 Infisical 音频授权清单；API 发现实际 Music 超级群 ID 为 -1004447109031，用户已确认用于验收。已改为 UTC 每六小时 cron，移除旧间隔门槛，补正式主流程和群内指令回归，准备远端 CI。
+
+- [1794567574] 开始 Issue #5：已读取正文，main 已包含 PR #4；基于最新 origin/main 创建 feature/issue-5-six-hour-sync。核对六小时调度、Worker 部署和 Secret Sync；真实音频及群组信息已向用户询问。全程不做本地编译验证。
+
 - [1794554016] Issue #3 实现与真实 Runner 验收已经完成，PR #4 等用户 review，不自行合并；最后文档和日志提交继续由现有远端 CI 检查。
 - [1794553298] LM 实际读取为 0 首，用户指定 PLc_u7T_eRp6c 由正式读取器读到 91 首；网页提示另隐藏 40 个不可用视频。已用现有个人 Infisical CLI 保存目标歌单（机器身份无写权限，未扩权）。已实现恢复 Google 会话后的普通 YouTube Sign in 跳转；新浏览器 HTTP 回归验证正常会话恢复、密码表单留给用户，待远端 CI。
 - [1794552848] 用户提出账号中没有 Playlist，指定若无歌单就用 YouTube playlist PLc_u7T_eRp6c；先核对链接可用性和当前 LM 收藏，不直接写入尚未确认的目标。继续保留定时关闭，真实发送尚未执行。

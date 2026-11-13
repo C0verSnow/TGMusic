@@ -1,4 +1,4 @@
-const PUBLIC_HELP = '/start /help\n白名单用户：/status /sync /targets /enable /disable\nOwner：/addtarget <chat_id> [audio|link] /removetarget <chat_id> /authstatus /health';
+const PUBLIC_HELP = '每 6 小时自动同步；/sync 可立即请求一次同步。\n/start /help\n白名单用户：/status /sync /targets /enable /disable\nOwner：/addtarget <chat_id> [audio|link] /removetarget <chat_id> /authstatus /health';
 const COMMANDS = new Set(['status', 'sync', 'targets', 'addtarget', 'removetarget', 'enable', 'disable', 'authstatus', 'health']);
 const OWNER_ONLY = new Set(['addtarget', 'removetarget', 'authstatus', 'health']);
 
