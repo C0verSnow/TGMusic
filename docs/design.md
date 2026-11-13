@@ -1,6 +1,6 @@
 # 设计与参考记录
 
-核对日期：2026-11-13。Issue #7 与用户本轮确认优先，采用 Cloudflare Worker；代理默认 auto；新增目标补发未发送歌曲；默认偏好 audio；权限放 D1；Worker 使用 Infisical Cloud 的 Secret Sync。
+核对日期：2026-11-13。Issue #9 与用户本轮确认优先；最新音频、限速与续跑规则见末节，早期 Issue 的说明保留为历史记录，采用 Cloudflare Worker；代理默认 auto；新增目标补发未发送歌曲；默认偏好 audio；权限放 D1；Worker 使用 Infisical Cloud 的 Secret Sync。
 
 ## GitHub 检索与候选比较
 

@@ -173,3 +173,20 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 首轮实现 `996d60c` 的 [push CI 43431946530](https://github.com/C0verSnow/TGMusic/actions/runs/43431946530) 已全部通过：Python 57 项、Worker 8 项、Worker 远端打包、预构建 Docker 浏览器。最终实现 `c5070ad` 的 [push CI 43432415608](https://github.com/C0verSnow/TGMusic/actions/runs/43432415608) 和 [PR CI 43432426945](https://github.com/C0verSnow/TGMusic/actions/runs/43432426945) 均通过：Python **58 项**、Worker **8 项**及 Worker 远端打包，push 另通过 Docker 浏览器任务。清单包含本次歌单列，验证移出歌单的旧未发送记录不会阻止本轮完成。没有执行本地测试、构建、编译或冒烟脚本。本轮没有部署 feature Worker、没有触发真实补发或修改生产发送记录；PR 合并后正式 /sync 才会执行新逻辑。
 
 Issue #7 已按用户要求关闭；[PR #8](https://github.com/C0verSnow/TGMusic/pull/8) 保持待 review，未合并。收尾文档提交仍由现有 CI 检查。初版 docs/latest.md 是真实 D1 只读导出，不是本轮真实补发验收；首次真实补发与 Worker 更新在 review 合并后执行。
+
+
+## Issue #9：音频、限速和自动续跑
+
+分支 `feature/issue-9-audio-pacing`，[PR #10](https://github.com/C0verSnow/TGMusic/pull/10)。用户选择一次 /sync 后分轮自动发完；每轮保留 20 首和 20 分钟处理边界，失败/待核对时停止续跑并回报。
+
+| 检查 | 结果与证据 |
+|---|---|
+| 原始故障 | [43433722679](https://github.com/C0verSnow/TGMusic/actions/runs/43433722679) 在约 46 秒内发 20 条 link；目标配置为 audio，AUDIO_AUTHORIZED_VIDEO_IDS 只有旧验收的一首。未修改生产配置或历史 |
+| 修复前回归 | [43438030560](https://github.com/C0verSnow/TGMusic/actions/runs/43438030560)，66 项中 9 项失败、1 项错误，捕获名单阻挡、旧 link 跳过、缺少限速、长 retry_after 被拒绝、旧回执错误恢复等真实路径 |
+| 首轮修复 | 9d598d7 的 75 项中仅旧“空名单禁止音频”测试失败，其他新增用例通过。300b5d7 删除这一过时断言，正式下载回归继续覆盖空名单与旧单首名单，不减少新行为覆盖 |
+| 真实 YouTube 下载 | [check-audio 43438856028](https://github.com/C0verSnow/TGMusic/actions/runs/43438856028) 成功；Google auth VALID，5scVBb4n-Vo 是原 Runner 发过链接、未列入旧名单的歌曲；正式下载器与 FFmpeg 产出 .mp3，6,248,493 字节；无消息发送、无歌曲历史变更 |
+| 音频发送和回执 | 正式 sync_targets + SQLite 覆盖旧 sent/link 升级 audio 一次、ETag 更新旧回执、D1 写失败后恢复 audio 回执不重发；旧 link 回执不能完成音频 pending；生成清单标出“待补音频” |
+| 间隔和 429 | 正式 HTTP 请求验证跨聊天上传与结果通知间隔 30 秒、上传重试 rewind、retry_after=90 完整等待、三次 429 后停止余下目标并保留冷却；正式 yt-dlp/FFmpeg 测试验证失败后下一首下载仍间隔 30 秒。测试注入时钟避免真实等待，不复制限速算法 |
+| 自动分轮 | 正式 main、History/sync_targets 验证发布与备份后才排队、下一轮不重复发送且最终完成；失败/待核对/无进展不自动循环。真实 HTTP 夹具验证 GitHub dispatch 的分支、目标范围、回执聊天及失败不盲重试 |
+
+最终实现 300b5d7 的 [push CI 43439202594](https://github.com/C0verSnow/TGMusic/actions/runs/43439202594) 与 [PR CI 43439211567](https://github.com/C0verSnow/TGMusic/actions/runs/43439211567) 全部通过：Python **74 项**、Worker **8 项**、Worker 远端打包，push 另通过预构建 Docker 浏览器。Issue #9 已按要求关闭；PR #10 已转为待 review，未合并。本次未进行本地构建、编译、测试或冒烟；只做代码阅读、AST 静态语法检查和 git diff --check。已检索并比较 GitHub 上的 python-telegram-bot 和 aiogram，来源与取舍见设计文档。未执行生产全歌单批量补发、未部署 feature Worker、未合并 PR；合并后 /sync 使用新逻辑。旧 Infisical 样例名单可以保留为废弃键，不再影响正常同步。

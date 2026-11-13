@@ -1,12 +1,15 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
 ## 想做：
+- [1794578876] PR #10 等用户 review；合并后正式 /sync 会按本次配置歌单补音频并自动续跑。生产全歌单批量发送与真实多轮发完未在 review 前执行。
 - [1794576054] PR #8 等用户 review；合并后同步逻辑会按预算补发旧 baseline。正式 Worker 需更新才能把同步结果送回发指令的聊天，部署与真实补发不在本轮自动执行。
 - [1794570421] Issue #5 的 PR #6 交用户 review；合并后将 TGMUSIC_ENABLED=true，启用六小时定时。交付前 Worker 恢复指向 main，不依赖临时功能分支；不擅自合并。
 
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794578876] Issue #9 已完成并按要求关闭，PR #10 已转待用户 review、未合并。300b5d7 的 push CI 43439202594 与 PR CI 43439211567 均通过：Python 74、Worker 8、Worker 打包，push 另通过 Docker 浏览器；真实 check-audio 43438856028 为原链接歌曲生成 6,248,493 字节 MP3。已实现全歌单音频、旧 link 补音频、至少 30 秒间隔、完整 retry_after 和无失败时自动分轮续跑；更新 README、设计与验收记录。GitHub 已检索比较 python-telegram-bot/aiogram，未进行本地构建、编译、测试或生产批量补发。
+- [1794577995] 开始 Issue #9：已读取正文、评论和指定 Runner 日志，20 次发送均为 link、间隔约 2 秒；在 feature/issue-9-audio-pacing 分支定位音频门槛和限速，保留原有未提交任务记录，不在本地编译或运行测试。
 - [1794578628] 已创建 PR #10；修复后首轮远端 CI 的 75 项仅有一项旧测试仍断言“空名单禁止音频”，其余音频升级、30 秒间隔、长 retry_after、回执恢复和续跑用例通过。移除这项已废弃断言，正式下载器已有空名单/旧样例名单均能下载歌单音频的真实 HTTP/FFmpeg 回归；真实 check-audio 43438856028 仍在运行。
 - [1794578270] 已只读核对生产配置：两个目标都是 audio，AUDIO_AUTHORIZED_VIDEO_IDS 只有 gHk8MIx6nfY，导致其他歌曲下载前就被跳过；已把音频补发、限流和回执恢复回归用例推送到现有远端 CI。用户已选择一次 /sync 后分轮自动续发，直到发完。
 - [1794577510] 用户指定的 action token 替换已完成：TGMusic prod /tgmusic/cloudflare-worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN、LearnWords dev / 的 GITHUB_TOKEN 均已更新；两个仓库现有机器身份回读都与 1/1.md 指定值一致。新令牌读取两个 GitHub Actions 工作流列表均返回 HTTP 200，未真实触发任务。本轮只改 Infisical 对应两项与任务日志，不输出令牌；未检索同类开源实现，未进行本地构建、编译或测试。
@@ -103,7 +106,6 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
-- [1794577995] 开始 Issue #9：已读取正文、评论和指定 Runner 日志，20 次发送均为 link、间隔约 2 秒；在 feature/issue-9-audio-pacing 分支定位音频门槛和限速，保留原有未提交任务记录，不在本地编译或运行测试。
 - [1794576054] Issue #7 功能工作已结束，收尾文档提交继续由现有远端 CI 检查；暂无正在执行的生产变更。
 - [1794575849] 首轮实现 996d60c 的远端 push CI 43431946530 全通过：Python 57、Worker 8、Worker 打包、Docker 浏览器；PR #8 可正常合并但继续留待用户 review。补充“本次歌单”列与真实 D1 自动生成清单，等待最终分支远端 CI；不触发真实发送。
 

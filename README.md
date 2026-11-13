@@ -197,7 +197,7 @@ Telegram Bot API 不提供任意聊天历史查询，无法承诺跨 Telegram �
 
 进入代理模式后，Python 请求和 Chromium 都固定使用本机代理端口；Mihomo 掉线会请求失败，不回退直连。配置文件权限 0600，退出删除，节点及控制器密钥不输出日志。`MIHOMO_CONTROLLER_URL` 必须与 YAML 匹配，TUN 网卡名默认 Meta，可在 YAML `tun.device` 指定。
 
-收藏优先使用浏览器凭据 + Innertube browse 分页，接口不兼容时才尝试 ytmusicapi。音频目标按 `YOUTUBE_PLAYLIST_ID` 对应的完整歌单处理，旧的测试歌曲名单 `AUDIO_AUTHORIZED_VIDEO_IDS` 已停用，不再让其他歌曲静默变成链接。请只同步你有权下载和分发的内容。音源由锁定版本的 yt-dlp 解析和下载，复用已恢复浏览器的 YouTube 域 Cookie 与 User-Agent，Node 22 执行固定 EJS 播放器脚本。下载和转换都保留 49 MB 限制；启用 Mihomo 时下载器同样固定走代理，代理失败不改成直连。音频目标无法正常访问、需要人工验证、格式缺失或下载失败时记失败，留待下次重试，不另发链接，不填写验证码、不解密 DRM、不自动下载额外远程组件。文件使用 FFmpeg 实际转换成 MP3/M4A，限制 49 MB，超限同样记失败。FLAC 不伪装成 MP3，当前不作为 sendAudio 播放器格式。
+收藏优先使用浏览器凭据 + Innertube browse 分页，接口不兼容时才尝试 ytmusicapi。音频目标按 `YOUTUBE_PLAYLIST_ID` 对应的完整歌单处理，旧的测试歌曲名单 `AUDIO_AUTHORIZED_VIDEO_IDS` 已停用，不再让其他歌曲静默变成链接。音源由锁定版本的 yt-dlp 解析和下载，复用已恢复浏览器的 YouTube 域 Cookie 与 User-Agent，Node 22 执行固定 EJS 播放器脚本。下载和转换都保留 49 MB 限制；启用 Mihomo 时下载器同样固定走代理，代理失败不改成直连。音频目标无法正常访问、需要人工验证、格式缺失或下载失败时记失败，留待下次重试，不另发链接，不填写验证码、不解密 DRM、不自动下载额外远程组件。文件使用 FFmpeg 实际转换成 MP3/M4A，限制 49 MB，超限同样记失败。FLAC 不伪装成 MP3，当前不作为 sendAudio 播放器格式。
 
 ## 密钥轮换
 
