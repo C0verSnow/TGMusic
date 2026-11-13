@@ -4,6 +4,11 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794549664] 已核对 GitHub 官方 workflow_dispatch 规则与 Infisical Secret Sync 文档；本轮未实现陌生功能，未新增同类开源项目检索，沿用 docs/design.md 已记录项目。差异检查通过；宿主 Python 缺 tomllib，未安装新工具，TOML 配置交给现有远端 CI 解析。未进行本地编译验证。
+- [1794549631] 两项业务令牌已补齐：Actions 现有 11 项必需配置、Worker 4 项；机器身份成功读回。新 GitHub Token 可读取 TGMusic 仓库与 Actions 工作流列表，尚未真实触发。TGMUSIC_ENABLED=false 已回读。main 目前只有文档，Actions 仅注册 CI；sync.yml 需要进入默认分支才能首次手动触发，未擅自合并 PR。
+- [1794549425] D1 Token 已保存到 Example Project prod /tgmusic/github-actions；机器身份成功读取并用该 Token 实际查询 D1，返回安装数 0。令牌仅 D1 Write，账号级范围，2027-02-11 到期。用户也明确同意生成仅 TGMusic 仓库的 GitHub Actions 读写令牌，页面已生成，正在保存到 Worker 目录。
+- [1794549135] 用户明确同意创建并保存 90 天 D1 写入令牌；Cloudflare 页面已显示创建成功，正在保存到 Infisical，不记录令牌值。只读 Bot API 确认专用测试 Bot 有效、默认私聊等于 Owner、Webhook 尚未注册；已将 Worker 的 Bot 用户名占位值换成实际用户名。
+- [1794548934] 已用现有机器身份重新读取 Example Project：Actions 10 项、Worker 3 项，仍缺 D1 Token 与 GitHub 触发 Token。Wrangler OAuth 可只读查询远端 D1，installation、targets、history 都为 0；最新提交 52842df 的 push CI 43353051395 与 PR CI 43353057945 均通过。
 - [1794537096] 检查迁移文档和差异，提交后由已有远端 CI 验证；定时同步保持关闭。仍缺 D1 API Token、Worker GitHub 触发 Token和实际新 Runner/Worker 联调。
 - [1794537231] 迁移说明与配置示例已推送为 62f6c5a，远端 PR CI 43352843036 通过；本机 .env 权限和 Git 忽略规则已核对，原始加密 Google 档案保留。本次 Example Project 目录迁移、机器身份读回及 GitHub 启动配置已完成。
 - [1794536457] 用户同意将 TGMusic 密钥迁入 Example Project 的独立文件夹，并指定读取 1/.env 中的 Infisical 凭据；先只读核对凭据所属项目和访问能力，再迁移和更新 GitHub 启动配置，不输出密钥，不进行本地编译。
@@ -59,6 +64,7 @@
 - [1794533810] 用户最新要求优先使用对应 CLI，实在不行再用浏览器。已用 Wrangler 确认 tgmusic-private 存在，并查看远端对象 put/get 命令。当前 Docker 上传仍使用 boto3，需要改成优先 Wrangler 的方案；这一步尚未实现。浏览器仅导航至 R2 凭证页面，未提交创建任何 R2 长期凭证。
 
 ## 没做：
+- [1794549631] 尚未显式初始化 D1/R2、在新 Runner 恢复真实登录或完成 Worker 部署、Secret Sync、Webhook 与真实音频/群组联调。两个业务 Token 已配置，旧的“缺 Token”记录仅代表当时情况。定时同步仍关闭。
 - [1794537231] 尚未补齐 Actions 的 D1 API Token 和 Worker 的 GitHub 触发 Token，尚未完成新 Runner/Worker 真实联调；TGMUSIC_ENABLED=false。GitHub Secret 仅能核对元数据，不能读回明文。本轮未进行本地构建、编译、测试或冒烟验证。
 - [1794474792] 遵守仓库约定，没有进行本地构建、编译、测试或冒烟脚本验证。
 - [1794474792] 用户决定先完成 PR，暂不联调真实 Telegram；真实 Google 登录、音频发出、生产凭证、跨目录权限和 Worker 上线尚未验收，未开启定时同步。
@@ -71,4 +77,6 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794549664] 正在提交令牌接入记录与 Worker Bot 用户名配置，交给已有远端 CI。主分支缺少同步工作流，真实 Runner 启动还需要用户 review 后纳入默认分支；不擅自合并。
+- [1794548833] 用户要求继续。恢复后先核对 Example Project 密钥、GitHub 分支和远端 CI、D1 与 Worker 接入缺项；沿用现有 CLI，不进行本地编译，不开启定时同步。
 - [1794537231] 本次密钥目录迁移已经完成，暂无正在执行的云端修改；后续需要补齐业务凭据并继续远端真实联调。

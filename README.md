@@ -104,6 +104,8 @@ Repository Secrets 只保存：
 - `INFISICAL_CLIENT_ID`
 - `INFISICAL_CLIENT_SECRET`
 
+同步工作流须先进入默认分支，才能首次从 Actions 页面或 Worker 手动触发；只在功能分支存在还不够，见 [GitHub 官方触发规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。当前 PR 等待 review 时保持定时关闭。
+
 Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 `/tgmusic/github-actions`、API 地址；完成初始化后才设 `TGMUSIC_ENABLED=true`。其他运行参数放 Infisical。手动执行 **YouTube Music Sync** 验收恢复、登录、列表及基线；下次新增一首歌验证发送。
 
 cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时任务跳过，防止配置未齐就自动运行。

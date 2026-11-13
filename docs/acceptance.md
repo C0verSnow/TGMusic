@@ -25,12 +25,12 @@
 | AT-09 加密档案恢复 | 完整 ini/User Data 自动测试通过；真实 R2 档案已上传并读回核对，见下文 |
 | AT-10/11/12/13 浏览器/Xvfb/登录 | 有头 Chromium、目录和测试 Cookie 恢复已在远端通过；真实 Google 已在 Docker 登录，真实新 Runner 恢复待验收 |
 | AT-14/15/16 Mihomo/TUN/出口 | 配置、路由、美国出口和固定代理已实现；真实代理节点待提供与验收 |
-| AT-17/18 音频发送 | HTTP 发送/重试路径有测试；真实 Bot 用户和群组待配置 |
+| AT-17/18 音频发送 | HTTP 发送/重试路径有测试；专用测试 Bot 已验证文本收发、默认私聊等于 Owner；真实音频和群组待验收 |
 | AT-19/20 白名单与入群不自动授权 | Worker `guest has help only...`、admin scope 测试通过 |
 | AT-21/22/23 多目标与隔离失败 | `test_targets_are_independent_and_new_target_baselines` |
 | AT-24 存储失败保留数据 | receipt 恢复、历史丢失拒绝发送、租约、档案完整性与 S3 ETag 冲突测试通过 |
 | AT-25 Webhook Secret | Worker `webhook rejects missing/wrong secret...` |
-| AT-26 触发 Actions | Worker `owner dispatches once...`；真实细粒度触发 Token 待配置 |
+| AT-26 触发 Actions | Worker `owner dispatches once...`；细粒度触发 Token 已配置且通过 Actions 只读 API 验证；真实触发待验收 |
 | AT-27 GitHub 只存启动凭证 | 仓库已保存且只保存两项 Infisical 启动 Secret；五项定位/启用变量已写入并回读核对 |
 | AT-28/29 Universal Auth/密钥注入 | 已核对 CLI 0.45.6 官方源码，远端已校验和安装 CLI；使用用户提供的 Example Project 机器身份成功登录并逐项读回迁移配置；GitHub Runner 实际注入待验收 |
 | AT-30 YAML 配置写入 | 权限 0600、退出删除；真实 Mihomo 验收待进行 |
@@ -57,7 +57,22 @@
 
 TGMusic 本机 `.env` 已切到新项目和 `/tgmusic/github-actions`，保存机器身份启动凭据，权限为 0600 且被 Git 忽略。原 TGMusic 项目和用户提供的 `1/.env` 保留。GitHub 仓库已通过官方加密 API 保存 INFISICAL_CLIENT_ID / INFISICAL_CLIENT_SECRET，读取元数据确认名称存在；API 不支持读回 Secret 明文。四项 Infisical 定位变量和 `TGMUSIC_ENABLED=false` 已设置并回读核对。尚未开启定时或完成真实新 Runner 验收。
 
-仍缺的业务凭据为 Actions 的 CLOUDFLARE_API_TOKEN（D1）和 Worker 的 GITHUB_WORKFLOW_TRIGGER_TOKEN，不能把目录迁移成功当成整个同步服务已上线。
+迁移当时缺少的 Actions D1 Token 和 Worker GitHub 触发 Token 已在后续补齐，读回与接入证据见下节；这仍不代表同步服务已经上线。
+
+## 业务令牌补齐与当前阻塞
+
+2026-11-13，经用户分别明确确认，已创建并保存：
+
+| 配置 | Infisical 位置 | 权限、到期日与实际核对 |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | Example Project prod `/tgmusic/github-actions` | `TGMusic D1 sync`，仅 D1 Write，2027-02-11 到期；Cloudflare 当前页面只支持账号级 D1 范围，不能限制到单个数据库，用户已知情同意。机器身份读回后，用此 Token 对真实 D1 查询成功 |
+| `GITHUB_WORKFLOW_TRIGGER_TOKEN` | Example Project prod `/tgmusic/cloudflare-worker` | `TGMusic Worker workflow trigger`，仅 `C0verSnow/TGMusic` 的 Actions 读写及必需的 Metadata 只读，2027-02-10 到期；机器身份读回后，用此 Token 读取仓库和 Actions 工作流列表成功。尚未执行真实 dispatch |
+
+Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌未写入仓库或本机 `.env`，也未放到迁移前的旧项目。Bot API `getMe` 确认 `@C0verSnow_TGMusic_Test_bot` 有效，默认私聊与 Owner 一致；`getWebhookInfo` 显示尚无 Webhook。已将 `worker/wrangler.toml` 中的 Bot 用户名占位值更新为实际用户名。
+
+远端 D1 的 installation、targets、history 均为 0。GitHub 默认分支仍为 `main`，只有 README 和任务日志；Actions API 只列出 CI，没有 `sync.yml`。按照 [GitHub workflow_dispatch 规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)，同步工作流需要先进入默认分支才能首次手动触发。PR #2 仍等待用户 review，本轮没有自行合并或修改默认分支。
+
+`TGMUSIC_ENABLED=false` 已从 GitHub API 回读确认。真实初始化、Runner 密钥注入与 Google 登录恢复、Worker Secret Sync / 部署 / Webhook、真实音频与群组联调仍待进行。本轮只进行了配置写入、真实服务 API 查询和静态差异检查，没有本地构建、编译、测试或冒烟脚本。
 
 ## 已创建的云资源
 
@@ -67,10 +82,10 @@ TGMusic 本机 `.env` 已切到新项目和 `/tgmusic/github-actions`，保存�
 
 ## 真实部署需要完成
 
-1. 补齐 D1 API Token 和 Worker 的 GitHub 触发 Token；R2 凭证、加密密钥、真实档案上传及读回已通过。
-2. 确认使用哪个 Telegram Bot 和 Owner/默认私聊数字 ID，目标用户先发送 `/start`。
+1. 核对 R2 安装标识与当前空的 D1 后，再显式初始化 D1/R2；D1 API Token、Worker 的 GitHub 触发 Token、R2 凭证与加密密钥均已配置。
+2. 沿用已确认的测试 Bot 和 Owner 默认私聊；已完成 `/start` 文本收发，真实音频及群组仍待验收。
 3. 使用已配置的共享身份完成 GitHub Runner 实际密钥注入验收，再将 Worker Secret Sync 指向 `/tgmusic/cloudflare-worker`。当前不要求验证共享身份对另一应用目录访问被拒绝。
-4. 在新的 GitHub Runner 恢复已上传的 Linux Google 登录档案，核对真实登录是否仍有效。
+4. 用户 review 后将同步工作流纳入默认分支，再在新的 GitHub Runner 恢复 Linux Google 登录档案，核对真实登录是否仍有效。
 5. 手动执行一次 Runner：确认实际出口、登录、列表分页、R2 解密和默认基线；新增歌曲后验证发送与再次运行不重复。
 6. 部署 Worker、注册 Webhook；测试错误 Secret、Guest、Owner/Admin、未授权群组、真实 `/sync`。
 7. 对一首确有下载和分发授权的歌曲验证 MP3/M4A 在 Telegram 播放器中显示，再启用定时。
