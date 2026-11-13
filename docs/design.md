@@ -103,3 +103,12 @@ Secret Sync 沿用现成的 [Infisical Cloudflare Workers Sync](https://infisica
 借鉴实现为 [Infisical/infisical](https://github.com/Infisical/infisical) 的 [Cloudflare 同步模块](https://github.com/Infisical/infisical/blob/main/backend/src/services/secret-sync/cloudflare-workers/cloudflare-workers-fns.ts)以及已使用的 [cloudflare/workers-sdk](https://github.com/cloudflare/workers-sdk)。前者使用 TypeScript 服务端任务和 Cloudflare API，非 ee 目录为 MIT Expat；后者是 Node CLI，Apache-2.0 / MIT 双许可。2026-11-13 GitHub API 核对：Infisical 30,476 星，当天提交，近期已关闭 PR #9452 有 5 条讨论；workers-sdk 4,723 星，当天提交，问题 #16881 已响应关闭。Infisical 已记录变量类型冲突及未部署版本导致同步失败等边界；当前仅同步加密 secret_text，先部署 Worker 再建立同步，不引入它们的服务端依赖、不复制源码。Cloudflare 连接需要 Workers Scripts Edit 与 Account Settings Read，现有仅 D1 Write 的 Runner Token 不能代替，详见[官方连接权限](https://infisical.com/docs/integrations/app-connections/cloudflare)。
 
 Worker 是无外部 import 的原生 ES module，可用 `wrangler deploy --no-bundle --config worker/wrangler.toml` 直接上传，跳过本地构建步骤。打包与测试仍由现有 GitHub CI 执行。
+
+
+### 音频实际验收暴露的下载入口问题
+
+真实 Runner 登录为 VALID，但 `gHk8MIx6nfY` 的旧 `player` 调用返回不可播放、0 个音频地址，最终正式流程发送 link；这不是 Telegram 音频成功的证据。按用户建议检索成熟下载器，比较记录见 [YouTube 下载项目研究](audio-download-research.md)。选择 yt-dlp 2026.10.26 + EJS 0.8.0，使用现有 Python pip 二进制安装、现有 setup-node22 和原有 FFmpeg，不自写播放器签名解析，不复制开源源码。
+
+下载器直接承担音源选择和下载，替换旧的自写直链流程；仅处理授权清单内 videoId。Cookie 从 DrissionPage 保存的 YouTube 域元数据注入 CookieJar，不把包含账号 Cookie / SAPISIDHASH 的整个 headers 字典当成全局媒体请求头。保留源域、路径和 Secure 属性；代理从正式 session 读取，空串显式直连，有代理时失败不回落。`max_filesize` 预检查和实际下载进度上限分别覆盖已知和未知 Content-Length；仍用 FFmpeg 生成 MP3/M4A，再走原来的 Telegram、R2 receipt 与 D1 去重。没有引入 CAPTCHA、外部 PO Token 服务或 DRM 解密。
+
+自动测试使用远端 CI 内真实 yt-dlp GenericIE、HTTP downloader 和 FFmpeg，验证文件、Cookie / User-Agent、明确拒绝、已知及未知大小、代理失败。该夹具只证明下载/转换集成，不冒称验证 YouTube 线上提取器；真实样例另用 `check-audio` 和 Telegram 验收。

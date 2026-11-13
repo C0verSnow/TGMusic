@@ -117,7 +117,7 @@ Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 
 
 cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram `/sync` 或 Actions 手动运行会立即请求额外的一次同步，不改变固定定时时刻。GitHub cron 使用 UTC，夏令时只会改变当地显示时间。旧的 `SYNC_INTERVAL_MINUTES` 不再使用，可从 Infisical 移除；调度以 `.github/workflows/sync.yml` 为准。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
 
-工作流固定 Python 3.12、DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
+工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
 
 音频回退为链接时，可在 Run workflow 选择 `operation=check-audio`，填写已在 `AUDIO_AUTHORIZED_VIDEO_IDS` 授权的 `video_id`。它在远端恢复真实档案并调用正式音频解析、下载与转码，只输出是否可播放、音频地址类型和文件大小，不发送消息、不修改歌曲历史，也不上传登录档案。检查失败与正常同步的链接回退要分开看。
 
@@ -189,7 +189,7 @@ Telegram Bot API 不提供任意聊天历史查询，无法承诺跨 Telegram �
 
 进入代理模式后，Python 请求和 Chromium 都固定使用本机代理端口；Mihomo 掉线会请求失败，不回退直连。配置文件权限 0600，退出删除，节点及控制器密钥不输出日志。`MIHOMO_CONTROLLER_URL` 必须与 YAML 匹配，TUN 网卡名默认 Meta，可在 YAML `tun.device` 指定。
 
-收藏优先使用浏览器凭据 + Innertube browse 分页，接口不兼容时才尝试 ytmusicapi。音源通过 player 接口选择音频码率；签名加密、反机器人挑战或不可播放的音源直接回退链接，不绕过这些限制。过期直链仅重新解析一次。文件使用 FFmpeg 实际转换成 MP3/M4A，限制 49 MB，超限回退链接。FLAC 不伪装成 MP3，当前不作为 sendAudio 播放器格式。
+收藏优先使用浏览器凭据 + Innertube browse 分页，接口不兼容时才尝试 ytmusicapi。音源由锁定版本的 yt-dlp 解析和下载，复用已恢复浏览器的 YouTube 域 Cookie 与 User-Agent，Node 22 执行固定 EJS 播放器脚本。下载和转换都保留 49 MB 限制；启用 Mihomo 时下载器同样固定走代理，代理失败不改成直连。无法正常访问、需要人工验证、格式缺失或下载失败时回退链接，不填写验证码、不解密 DRM、不自动下载额外远程组件。文件使用 FFmpeg 实际转换成 MP3/M4A，限制 49 MB，超限回退链接。FLAC 不伪装成 MP3，当前不作为 sendAudio 播放器格式。
 
 ## 密钥轮换
 

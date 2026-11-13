@@ -10,7 +10,7 @@ def utc_now():
 
 def configure_logging():
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-    for name in ("urllib3", "botocore", "boto3", "DrissionPage"):
+    for name in ("urllib3", "botocore", "boto3", "DrissionPage", "yt_dlp"):
         logging.getLogger(name).setLevel(logging.CRITICAL)
 
 

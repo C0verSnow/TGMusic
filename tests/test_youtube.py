@@ -5,7 +5,7 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path('src').resolve()))
 from models import Song
 from youtube_client import parse_song, playlist_page, CollectionError, YouTubeClient
-from audio_resolver import AudioResolver, choose_stream
+from audio_resolver import AudioResolver
 
 
 def row(video_id, title='Song'):
@@ -50,12 +50,3 @@ class YouTubeTests(unittest.TestCase):
         config = SimpleNamespace(audio_authorized_video_ids=frozenset())
         resolver = AudioResolver(None, None, config)
         self.assertIsNone(resolver.resolve(Song('abcdefghijk','a','b'), '/tmp'))
-
-    def test_quality_and_ciphered_stream_fallback(self):
-        formats = [{'mimeType': 'audio/mp4', 'url': 'https://example.com/a', 'bitrate': 100},
-                   {'mimeType': 'audio/webm', 'url': 'https://example.com/b', 'bitrate': 200},
-                   {'mimeType': 'audio/mp4', 'signatureCipher': 'encrypted', 'bitrate': 300}]
-        data = {'streamingData': {'adaptiveFormats': formats}}
-        self.assertEqual(choose_stream(data, 'best')['bitrate'], 200)
-        self.assertEqual(choose_stream(data, 'worst')['bitrate'], 100)
-        self.assertIsNone(choose_stream({'streamingData': {'adaptiveFormats': formats[2:]}}, 'best'))

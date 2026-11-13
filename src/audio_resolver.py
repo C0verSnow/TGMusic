@@ -3,6 +3,8 @@ import subprocess
 from pathlib import Path
 
 import requests
+from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
 
 from models import SyncError
 
@@ -19,40 +21,35 @@ class AudioResolver:
         if song.video_id not in self.config.audio_authorized_video_ids:
             return None
         try:
-            for attempt in range(2):
-                data = self.youtube.player(song.video_id)
-                if data.get("playabilityStatus", {}).get("status") != "OK":
-                    return None
-                stream = choose_stream(data, self.config.audio_quality)
-                if stream is None:
-                    return None
-                source = Path(directory) / (song.video_id + ".source")
-                try:
-                    if not self.download(stream, source):
-                        return None
-                    return self.convert(source, directory, song.video_id)
-                except requests.HTTPError as error:
-                    if attempt == 0 and error.response.status_code in {403, 410}:
-                        continue
-                    return None
-        except (requests.RequestException, SyncError, subprocess.SubprocessError, OSError):
+            source = self.download(song, directory)
+            return self.convert(source, directory, song.video_id) if source else None
+        except (DownloadError, SyncError, subprocess.SubprocessError, OSError):
             logging.warning("Audio unavailable; falling back to original link")
-        return None
+            return None
 
-    def download(self, stream, path):
-        if int(stream.get("contentLength", 0)) > MAX_AUDIO_BYTES:
-            return False
-        size = 0
-        # Only media hosts receive stream requests; Google account cookies stay on music.youtube.com.
-        with self.session.get(stream["url"], stream=True, timeout=60) as response:
-            response.raise_for_status()
-            with path.open("wb") as output:
-                for chunk in response.iter_content(65536):
-                    size += len(chunk)
-                    if size > MAX_AUDIO_BYTES:
-                        return False
-                    output.write(chunk)
-        return size > 0
+    def download(self, song, directory):
+        options = {
+            "format": "bestaudio/best" if self.config.audio_quality == "best" else "worstaudio/worst",
+            "outtmpl": str(Path(directory) / (song.video_id + ".%(ext)s")),
+            "noplaylist": True, "cachedir": False, "quiet": True, "no_warnings": True,
+            "logger": logging.getLogger("yt_dlp"),
+            "proxy": self.session.proxies.get("https", ""),
+            "http_headers": {"User-Agent": self.youtube.base_headers["User-Agent"]},
+            "js_runtimes": {"node": {}}, "remote_components": [],
+            "max_filesize": MAX_AUDIO_BYTES, "progress_hooks": [limit_download],
+            "socket_timeout": 60, "retries": 1, "fragment_retries": 1,
+            "skip_unavailable_fragments": False,
+        }
+        # yt-dlp owns YouTube extraction; retain the restored browser's cookie domains.
+        with YoutubeDL(options) as downloader:
+            for cookie in self.youtube.cookies:
+                downloader.cookiejar.set_cookie(requests.cookies.create_cookie(
+                    cookie["name"], cookie["value"], domain=cookie["domain"],
+                    path=cookie["path"], secure=cookie["secure"],
+                    expires=cookie["expires"] if cookie.get("expires", -1) > 0 else None))
+            result = downloader.extract_info(song.url, download=True)
+            source = Path(downloader.prepare_filename(result))
+        return source if source.is_file() else None
 
     def convert(self, source, directory, video_id):
         target = Path(directory) / (video_id + "." + self.config.audio_format)
@@ -63,11 +60,6 @@ class AudioResolver:
         return target if target.stat().st_size <= MAX_AUDIO_BYTES else None
 
 
-def choose_stream(data, quality):
-    formats = data.get("streamingData", {}).get("adaptiveFormats", [])
-    candidates = [row for row in formats if row.get("mimeType", "").startswith("audio/")
-                  and row.get("url", "").startswith("https://")]
-    # Ciphered streams need a player implementation; never pretend they are downloadable URLs.
-    if not candidates:
-        return None
-    return sorted(candidates, key=lambda row: row.get("bitrate", 0), reverse=quality == "best")[0]
+def limit_download(progress):
+    if progress.get("downloaded_bytes", 0) > MAX_AUDIO_BYTES:
+        raise DownloadError("Audio exceeds the download size limit")

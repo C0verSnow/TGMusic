@@ -85,6 +85,8 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794569777] 远端音频诊断 43417558822 已定位：真实登录 VALID，但旧 player 接口 playable=false、音频地址 0；未发送消息或改歌曲历史。用户建议检索开源下载项目，按 research 技能委派后台研究；比较 yt-dlp 与 pytubefix 后接入锁定 yt-dlp 2026.10.26 + EJS 0.8.0，Runner 沿用现有 setup-node22。保留原授权清单、Cookie 域、代理不回落直连、49MB 上限、FFmpeg 和链接回退；新增实际 HTTP + yt-dlp + FFmpeg 回归，只在远端运行。
+
 - [1794569381] 用户已保存专用 Cloudflare Token，验证 active；用既有个人 Infisical CLI 会话建立 tgmusic-worker-secrets App Connection 和自动 Secret Sync（01fddc4a-8d48-480b-a168-1b96b552e9d2），状态 succeeded，四项 secret_text 已核对。私聊 sync 43415732090 成功：指定歌曲只发送一次 link、message_id=18、attempts=1；音频仍未通过。用户同意先做远端不发送的音频诊断，增加 check-audio 手动入口，复用正式实现，不引入新组件。
 
 - [1794568783] 按用户要求再次核对 Wrangler 支持的 OAuth scopes，确无 Token 创建权限。已按 Cloudflare 官方模板 URL 在浏览器打开预填表单：TGMusic Infisical Worker Secrets，仅当前账号 Workers Scripts Edit + Account Settings Read。群组 sync 43415724056 成功：VALID、91 首新群基线、发送 0，未动私聊。
