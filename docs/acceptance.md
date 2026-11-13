@@ -193,7 +193,7 @@ Issue #7 已按用户要求关闭；[PR #8](https://github.com/C0verSnow/TGMusic
 
 ## 本次密钥整理（1794586463）
 
-运行环境已统一为 Example Project dev。Runner 13 项、Worker 4 项逐项回读一致；组织机器身份可读取新的应用目录。组织保存两项凭证和三项非敏感 Variables，本仓库保存路径 Secret。旧 main 的路径 Variable 暂留，合并 PR #12 后清理。
+运行环境已统一为 Example Project dev。Runner 13 项、Worker 4 项逐项回读一致；组织机器身份可读取新的应用目录。组织保存两项凭证和三项非敏感 Variables，本仓库保存路径 Secret。用户已批准合并 PR #12，旧路径 Variable 已清理，默认分支已改读路径 Secret。
 
 Cloudflare 官方自动同步已切到 dev，2026-11-13T16:05:18.998Z 成功；Wrangler 确认线上仍为四项 secret_text。没有发送业务消息或改写登录档案；旧项目和 prod 目录保留回退。
 
