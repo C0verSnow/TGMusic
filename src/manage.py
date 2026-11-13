@@ -1,8 +1,10 @@
 """Explicit setup and recovery operations; normal sync never initializes missing storage."""
 import argparse
 import json
+import os
 import sys
 import uuid
+from pathlib import Path
 
 from browser_session import BrowserSession
 from cloudflare_storage import D1, R2
@@ -32,9 +34,17 @@ def main():
     admin.add_argument("chat_id", type=int, nargs="+")
     webhook = sub.add_parser("set-webhook")
     webhook.add_argument("url")
+    profile = sub.add_parser("set-bot-profile")
+    profile.add_argument("--name", default="TGMusic")
+    profile.add_argument("--username", default="C0verSnow_TGMusic_bot",
+                         help="Expected existing username, not a rename operation")
+    profile.add_argument("--photo", type=Path, default=Path("assets/bot-avatar.jpg"))
     args = parser.parse_args()
     configure_logging()
     mask_actions_secrets()
+    if args.command == "set-bot-profile":
+        set_bot_profile(args)
+        return
     config = Config.load()
     db, r2 = D1(config), R2(config)
     if args.command == "bootstrap":
@@ -44,7 +54,6 @@ def main():
     elif args.command == "rotate-profile-key":
         rotate_profile_key(config, db, r2)
     elif args.command == "set-webhook":
-        import os
         secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
         if not secret or not args.url.startswith("https://"):
             raise SyncError("HTTPS URL and TELEGRAM_WEBHOOK_SECRET are required")
@@ -63,6 +72,23 @@ def main():
                 reconcile(history, r2, args)
         finally:
             history.release()
+
+
+def set_bot_profile(args):
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token or not 1 <= len(args.name) <= 64:
+        raise SyncError("TELEGRAM_BOT_TOKEN and a name of 1-64 characters are required")
+    if not args.photo.is_file() or args.photo.suffix.lower() not in {".jpg", ".jpeg"}:
+        raise SyncError("Bot profile photo must be a local JPG file")
+    bot = TelegramBot(token)
+    identity = bot.call("getMe", {})
+    if identity["username"].lower() != args.username.lstrip("@").lower():
+        raise SyncError("Token belongs to another bot; create/select the expected bot in BotFather first")
+    bot.call("setMyName", {"name": args.name})
+    with args.photo.open("rb") as photo:
+        bot.call("setMyProfilePhoto", {"photo": json.dumps({"type": "static", "photo": "attach://avatar"})},
+                 {"avatar": photo})
+    print(f"Bot profile updated: {args.name} (@{identity['username']})")
 
 
 def bootstrap(config, db, r2):

@@ -198,3 +198,11 @@ Issue #7 已按用户要求关闭；[PR #8](https://github.com/C0verSnow/TGMusic
 Cloudflare 官方自动同步已切到 dev，2026-11-13T16:05:18.998Z 成功；Wrangler 确认线上仍为四项 secret_text。没有发送业务消息或改写登录档案；旧项目和 prod 目录保留回退。
 
 远端 CI 43459930951、43459834459、43460099114 全部通过，包括真实组织凭证读取及原有测试。本地只做 AST、YAML 和差异检查，没有本地编译或测试。GitHub 已检索并比较官方 CLI 与 Secrets Action，继续沿用现有 CLI。
+
+
+## Issue #11：正式 Bot 与群授权
+
+- 远端 CI：群内不带 ID 的音频授权、link 模式、原数字 ID 用法、重新启用保留历史、非 Owner 和非群管理员被拒、错误参数无写入、正式 @用户名与其他 Bot 指令过滤、群内同步只分发本群。
+- 远端 CI：通过真实本地 HTTP 服务接收正式资料设置请求，核对先 getMe、再 setMyName、最后 multipart 上传仓库 JPG；错误账号不修改资料。这里只在 GitHub Runner 执行，不在开发机运行。
+- 部署验收：新 Bot 的 getMe/名称/头像，Runner 与 Worker 配置一致、自动 Secret Sync 成功、旧 Webhook 停用、新 Webhook 注册成功；保留 D1/R2 与原发送历史。
+- 群内使用：Bot 和 Owner 都是群管理员，在新群发送 /addtarget@C0verSnow_TGMusic_bot，确认回复里是本群 ID；等 10 秒后 /sync@C0verSnow_TGMusic_bot 只补发本群。新建群由用户按实际需要选择，不为验收创建多余群或批量补发。

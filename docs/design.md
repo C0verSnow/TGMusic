@@ -159,3 +159,18 @@ Worker 是无外部 import 的原生 ES module，可用 `wrangler deploy --no-bu
 ## 本次组织配置统一（1794586463）
 
 按 browser-persistent-runner 技能统一使用 Example Project dev，组织共用机器身份，仓库只提供应用目录 Secret；定位参数使用组织 Variables。原 prod 路径只作回退。沿用 [Infisical CLI](https://github.com/Infisical/cli) 0.45.6 和 [Workers Secret Sync](https://infisical.com/docs/integrations/secret-syncs/cloudflare-workers)，不新增存储或网络方案。再次核对 [Secrets Action](https://github.com/Infisical/secrets-action) 的 #40 已获响应关闭，CLI 当天有提交及近期 issue 讨论；继续使用已验证的 CLI，不引入新的 Action 依赖。
+
+
+## Issue #11：正式 Bot 与群内选定目标
+
+已有 `/addtarget <chat_id> [audio|link]`，以及只同步当前群的 `/sync`。缺少的是不用查群 ID 的授权入口，因此扩展原 `/addtarget`：群内不传 ID 时取当前聊天，仍只允许 D1 Owner 且是 Telegram 群管理员；私聊仍必须传数字 ID。保留原有审计、10 秒限流、初次补发和历史，授权不自动触发发送。没有新增角色、表或依赖。
+
+2026-11-13 在 GitHub 检索并比较了 [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)（29,592 星，GPL-3.0，11 月 12 日有提交，近期关闭 #5388、#5386）和 [aiogram](https://github.com/aiogram/aiogram)（5,936 星，MIT，11 月 13 日有提交，近期关闭 #2003、#2002）。前者提供带上下文的命令处理和群管理员过滤，后者用类型对象封装 Bot API 方法与文件上传；二者都有活跃 Issue 响应。已知限制仍来自 Telegram：群隐私模式下应带 @用户名，可靠查询其他成员身份需要 Bot 为管理员，主用户名不能通过 Bot API 修改。项目现有 Worker 足够处理这两个参数分支，继续使用原生 fetch 与 requests，不引入任何框架，也不复制候选代码。
+
+资料设置参考 [aiogram 的 set_my_profile_photo](https://github.com/aiogram/aiogram/blob/dev-3.x/aiogram/methods/set_my_profile_photo.py) 及 [官方 setMyProfilePhoto](https://core.telegram.org/bots/api#setmyprofilephoto)：JPG 通过 multipart 上传，photo 使用静态 InputProfilePhoto 和 attach://avatar。管理命令先核对 getMe 的实际用户名，避免把正式资料写给旧测试账号；这不是修改用户名的接口。用户选择通过 BotFather 新建 @C0verSnow_TGMusic_bot，迁移 Runner/Worker Token 与 Webhook，沿用原 D1/R2 的白名单与发送历史。
+
+头像用内置 imagegen 生成，提示词为：
+
+> Use case: logo-brand. Asset type: square Telegram bot profile avatar for TGMusic, a personal music playlist sharing bot. Primary request: an original minimalist music app icon: a crisp white pair of joined eighth notes, with a subtle paper-plane-shaped notch in the connecting beam. Backdrop: rich coral red to magenta gradient, flat full-bleed square background. Style: polished, simple app icon with clean edges and high contrast, readable at 48px. Composition: one large centered mark with generous safe margin for Telegram circular cropping. No letters, no text, no watermark, no Apple logo or existing brand logo. Output square PNG.
+
+PNG 保存在 assets/bot-avatar.png，JPG 是同一图片的格式转换，供 Telegram 上传，不手工重绘。

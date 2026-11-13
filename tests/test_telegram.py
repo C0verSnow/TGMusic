@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 from unittest.mock import patch
 import sys
@@ -6,9 +7,11 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 sys.path.insert(0, str(Path('src').resolve()))
 from telegram_bot import TelegramBot
-from models import SendRejected, SendUncertain
+from models import SendRejected, SendUncertain, SyncError
+from manage import set_bot_profile
 
 
 class TelegramTests(unittest.TestCase):
@@ -52,6 +55,28 @@ class TelegramTests(unittest.TestCase):
         self.assertEqual(self.bot.call('sendAudio', {'chat_id': 123}, {'audio': io.BytesIO(b'actual-audio')})['message_id'], 4)
         self.assertEqual(self.delays, [30])
         self.assertTrue(all(b'actual-audio' in body for body in self.requests))
+
+    def test_profile_sets_name_and_uploads_real_jpg_after_identity_check(self):
+        self.responses = [(200, {'ok': True, 'result': {'username': 'C0verSnow_TGMusic_bot'}}),
+                          (200, {'ok': True, 'result': True}), (200, {'ok': True, 'result': True})]
+        photo = Path('assets/bot-avatar.jpg')
+        args = SimpleNamespace(name='TGMusic', username='@C0verSnow_TGMusic_bot', photo=photo)
+        with patch.dict(os.environ, {'TELEGRAM_BOT_TOKEN': 'test-token'}), \
+                patch('manage.TelegramBot', return_value=self.bot):
+            set_bot_profile(args)
+        self.assertEqual(len(self.requests), 3)
+        self.assertIn(b'name=TGMusic', self.requests[1])
+        self.assertIn(b'attach://avatar', self.requests[2])
+        self.assertIn(photo.read_bytes(), self.requests[2])
+        self.assertEqual(self.delays, [30, 30])
+
+    def test_profile_rejects_wrong_bot_before_changing_name_or_avatar(self):
+        self.responses = [(200, {'ok': True, 'result': {'username': 'Old_Test_bot'}})]
+        args = SimpleNamespace(name='TGMusic', username='C0verSnow_TGMusic_bot', photo=Path('assets/bot-avatar.jpg'))
+        with patch.dict(os.environ, {'TELEGRAM_BOT_TOKEN': 'test-token'}), \
+                patch('manage.TelegramBot', return_value=self.bot), self.assertRaises(SyncError):
+            set_bot_profile(args)
+        self.assertEqual(len(self.requests), 1)
 
     def test_explicit_failure_and_unknown_result(self):
         self.responses = [(403, {'ok': False, 'error_code': 403})]
