@@ -4,6 +4,7 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794549897] 配置提交 3eb9fa4 的 PR CI 43375794236 已通过；push CI 43375787609 的 Docker 任务因拉镜像限流首次失败，只重跑失败任务后第二次全部通过。未修改应用逻辑或镜像配置。另用 Wrangler 确认 R2 无 sync/installation.json，D1/R2 尚未初始化。
 - [1794549664] 已核对 GitHub 官方 workflow_dispatch 规则与 Infisical Secret Sync 文档；本轮未实现陌生功能，未新增同类开源项目检索，沿用 docs/design.md 已记录项目。差异检查通过；宿主 Python 缺 tomllib，未安装新工具，TOML 配置交给现有远端 CI 解析。未进行本地编译验证。
 - [1794549631] 两项业务令牌已补齐：Actions 现有 11 项必需配置、Worker 4 项；机器身份成功读回。新 GitHub Token 可读取 TGMusic 仓库与 Actions 工作流列表，尚未真实触发。TGMUSIC_ENABLED=false 已回读。main 目前只有文档，Actions 仅注册 CI；sync.yml 需要进入默认分支才能首次手动触发，未擅自合并 PR。
 - [1794549425] D1 Token 已保存到 Example Project prod /tgmusic/github-actions；机器身份成功读取并用该 Token 实际查询 D1，返回安装数 0。令牌仅 D1 Write，账号级范围，2027-02-11 到期。用户也明确同意生成仅 TGMusic 仓库的 GitHub Actions 读写令牌，页面已生成，正在保存到 Worker 目录。
@@ -77,6 +78,9 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794549897] 本轮令牌补齐和配置记录已完成，等待用户 review PR #2；真实 Runner 首次启动需要同步工作流进入默认分支。未合并 PR、未关闭 Issue、未部署 Worker或开启定时；本轮没有本地构建、编译、测试或冒烟验证。
+- [1794549788] 远端日志定位到 Docker 拉镜像返回 toomanyrequests，容器还未启动；Python、Worker 测试及打包已通过。现有 CI 本身就是反馈入口；失败来自镜像仓库限流，跳过本地复现、假设枚举和回归代码，只重跑失败任务，不扩大实现。
+- [1794549771] 3eb9fa4 已推送；push CI 43375787609 报失败，PR CI 仍在运行。正在读取远端失败任务日志，按 diagnosing-bugs 流程定位，不进行本地复现或编译验证。
 - [1794549664] 正在提交令牌接入记录与 Worker Bot 用户名配置，交给已有远端 CI。主分支缺少同步工作流，真实 Runner 启动还需要用户 review 后纳入默认分支；不擅自合并。
 - [1794548833] 用户要求继续。恢复后先核对 Example Project 密钥、GitHub 分支和远端 CI、D1 与 Worker 接入缺项；沿用现有 CLI，不进行本地编译，不开启定时同步。
 - [1794537231] 本次密钥目录迁移已经完成，暂无正在执行的云端修改；后续需要补齐业务凭据并继续远端真实联调。

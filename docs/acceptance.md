@@ -70,7 +70,9 @@ TGMusic 本机 `.env` 已切到新项目和 `/tgmusic/github-actions`，保存�
 
 Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌未写入仓库或本机 `.env`，也未放到迁移前的旧项目。Bot API `getMe` 确认 `@C0verSnow_TGMusic_Test_bot` 有效，默认私聊与 Owner 一致；`getWebhookInfo` 显示尚无 Webhook。已将 `worker/wrangler.toml` 中的 Bot 用户名占位值更新为实际用户名。
 
-远端 D1 的 installation、targets、history 均为 0。GitHub 默认分支仍为 `main`，只有 README 和任务日志；Actions API 只列出 CI，没有 `sync.yml`。按照 [GitHub workflow_dispatch 规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)，同步工作流需要先进入默认分支才能首次手动触发。PR #2 仍等待用户 review，本轮没有自行合并或修改默认分支。
+远端 D1 的 installation、targets、history 均为 0；Wrangler 查询确认 R2 尚无 `sync/installation.json` 安装标识，尚未初始化。GitHub 默认分支仍为 `main`，只有 README 和任务日志；Actions API 只列出 CI，没有 `sync.yml`。按照 [GitHub workflow_dispatch 规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)，同步工作流需要先进入默认分支才能首次手动触发。PR #2 仍等待用户 review，本轮没有自行合并或修改默认分支。
+
+配置提交 `3eb9fa4` 的 [PR CI 43375794236](https://github.com/C0verSnow/TGMusic/actions/runs/43375794236) 已通过；[push CI 43375787609](https://github.com/C0verSnow/TGMusic/actions/runs/43375787609) 第二次尝试也全部通过，包含 Docker 浏览器。第一次 Docker 任务在镜像拉取时遭遇 `toomanyrequests`，尚未启动容器；只重跑该失败任务即通过，没有修改应用逻辑或镜像配置。
 
 `TGMUSIC_ENABLED=false` 已从 GitHub API 回读确认。真实初始化、Runner 密钥注入与 Google 登录恢复、Worker Secret Sync / 部署 / Webhook、真实音频与群组联调仍待进行。本轮只进行了配置写入、真实服务 API 查询和静态差异检查，没有本地构建、编译、测试或冒烟脚本。
 
