@@ -206,3 +206,12 @@ Cloudflare 官方自动同步已切到 dev，2026-11-13T16:05:18.998Z 成功；W
 - 远端 CI：通过真实本地 HTTP 服务接收正式资料设置请求，核对先 getMe、再 setMyName、最后 multipart 上传仓库 JPG；错误账号不修改资料。这里只在 GitHub Runner 执行，不在开发机运行。
 - 部署验收：新 Bot 的 getMe/名称/头像，Runner 与 Worker 配置一致、自动 Secret Sync 成功、旧 Webhook 停用、新 Webhook 注册成功；保留 D1/R2 与原发送历史。
 - 群内使用：Bot 和 Owner 都是群管理员，在新群发送 /addtarget@C0verSnow_TGMusic_bot，确认回复里是本群 ID；等 10 秒后 /sync@C0verSnow_TGMusic_bot 只补发本群。新建群由用户按实际需要选择，不为验收创建多余群或批量补发。
+
+### 本次实际结果（1794588473）
+
+- 代码提交 1166f8c：push CI [43465248607](https://github.com/C0verSnow/TGMusic/actions/runs/43465248607) 和 PR CI [43465310408](https://github.com/C0verSnow/TGMusic/actions/runs/43465310408) 均通过：Python 76、Worker 13、Worker 打包；push 另通过 Docker 浏览器检查。未进行本地构建、编译或测试。
+- 正式 TGMusic 已创建，用户名 @C0verSnow_TGMusic_bot，Bot ID 9265400889；getMyName 返回 TGMusic，getUserProfilePhotos 返回 1 张原创头像。PNG 由内置 imagegen 生成，转 JPG 后通过官方 Bot API multipart 上传成功。开发机缺少管理入口的浏览器依赖，因此没有安装新依赖或在本地跑回归；管理入口由上述远端 HTTP 回归验证。
+- Infisical dev 两个目录的 Token 均已更新并回读一致，Runner Token 的 getMe 指向正式账号；已有 Cloudflare 自动 Secret Sync 于 2026-11-13T16:44:23Z 成功。Worker 使用 --no-bundle 上传源码，版本 6610f731-6d92-486c-bdab-9ecd38c4b0cf，GITHUB_REF 保持 main。
+- 旧 Bot Webhook 地址为空；新 Bot Webhook 复用原地址，allowed_updates 为 message、积压 0、无错误。Owner 私聊已 /start，真实 /help 回复正常；正式 Bot 已加入原 Music 群并成为管理员。
+- 真实 Owner 在 Music 群发送 /addtarget@C0verSnow_TGMusic_bot，正式 Bot 回复“目标已授权：-1004447109031（audio）”，D1 审计 allowed；历史仍为 184 条，没有重新初始化。新群由用户按需要建立后照 README 授权。
+- 本次没有触发生产歌单批量补发，也没有开启原本关闭的定时开关。旧测试 Bot 保留账号，只有 Webhook 停用；没有删除聊天、歌曲记录、浏览器档案或其他 Bot 的凭据。
