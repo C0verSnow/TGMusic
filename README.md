@@ -143,13 +143,23 @@ python src/infisical_boot.py src/manage.py set-webhook https://你的Worker域�
 
 ## 指令与授权
 
+正式 Bot：**TGMusic**（[@C0verSnow_TGMusic_bot](https://t.me/C0verSnow_TGMusic_bot)）。
+
+新群的用法：
+
+1. 把正式 Bot 加到你要收音乐的群里，设为群管理员；你自己也必须是群主或管理员。
+2. 用白名单里的 Owner 账号在**那个群里**发 `/addtarget@C0verSnow_TGMusic_bot`，默认发送音频；只要链接则发 `/addtarget@C0verSnow_TGMusic_bot link`。
+3. 收到授权成功后等 10 秒，再在同一个群发 `/sync@C0verSnow_TGMusic_bot`。这次只向该群补发；以后该群也参加每六小时的定时同步。
+
+每个群单独授权，入群不会自动订阅。新增群不会替换或暂停原有目标；如果不想继续发到旧群或私聊，用 `/disable <旧chat_id>` 暂停。Owner 在私聊发 `/sync` 仍会同步所有启用目标。这里选择的是整个群，不支持指定群内话题。
+
 | 指令 | 用法 | 谁能用 |
 |---|---|---|
 | `/start` `/help` | 帮助 | 所有人 |
 | `/status` | 最近同步与目标状态 | Owner / Admin |
 | `/sync` | 核对并补发未发送歌曲，更新清单后回报结果 | Owner / Admin |
 | `/targets` | 查看目标；Admin 只看到授权范围 | Owner / Admin |
-| `/addtarget` | `/addtarget -1001234567890 audio`；也可 link | Owner，且须为该群管理员 |
+| `/addtarget` | 群内 `/addtarget [audio|link]` 选当前群；也可 `/addtarget -1001234567890 audio` | Owner，且须为该群管理员 |
 | `/removetarget` | `/removetarget -1001234567890`；保留历史 | Owner |
 | `/enable` `/disable` | 当前目标，或指定数字 chat_id | Owner / 有该目标授权的 Admin，群组还需群管理员身份 |
 | `/authstatus` | 最近一次 Google 登录检查 | Owner |
@@ -162,6 +172,21 @@ Bot 入群不会自动订阅。Bot 需具备发送权限，并建议设为群管
 ```sh
 python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 ```
+
+### 正式名称、头像与账号迁移
+
+仓库提供原创头像 [PNG](assets/bot-avatar.png) 和 Bot API 上传用的 [JPG](assets/bot-avatar.jpg)。在已有配置环境执行：
+
+```sh
+python src/infisical_boot.py src/manage.py set-bot-profile \
+  --name TGMusic --username C0verSnow_TGMusic_bot --photo assets/bot-avatar.jpg
+```
+
+该命令只需要 `TELEGRAM_BOT_TOKEN`，先通过 `getMe` 核对账号，再设置默认名称和头像，保留 Telegram 请求间隔。`--username` 是核对用的，不会修改用户名；头像要求 JPG，Token 不属于预期账号时不会改资料。
+
+[Telegram 官方规则](https://core.telegram.org/bots/features#creating-a-new-bot)说明现有 Bot 的主用户名不能直接修改。本次用户选择新建正式 Bot。迁移时把新 Token 同时写入 Infisical dev 的 `/tgmusic/github-actions` 和 `/tgmusic/cloudflare-worker`，确认 Worker Secret Sync 成功，并将 `worker/wrangler.toml` 中的用户名与实际 `getMe` 对齐后无打包部署。旧 Bot 的 Webhook 停用，新 Bot 用原地址和现有 Webhook Secret 重新注册。不要撤销其他 Bot 的凭据。
+
+新 Bot 要在私聊重新 `/start`，并重新加入已有目标群、取得发送权限。D1 的 Owner 白名单、目标和历史按数字用户/聊天 ID 保存，继续使用原 D1/R2；**不要重跑 bootstrap，不要删除发送历史**。已发成功的歌曲不会因换 Bot 重新发送；确实尚未发送的歌曲仍按目标补发。完成迁移后，新群照上面的三步授权即可。
 
 ## 发送、失败与恢复
 

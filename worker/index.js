@@ -1,4 +1,4 @@
-const PUBLIC_HELP = '每 6 小时自动同步；/sync 可立即请求一次同步。\n/start /help\n白名单用户：/status /sync /targets /enable /disable\nOwner：/addtarget <chat_id> [audio|link] /removetarget <chat_id> /authstatus /health';
+const PUBLIC_HELP = '每 6 小时自动同步；/sync 可立即请求一次同步。\n/start /help\n白名单用户：/status /sync /targets /enable /disable\nOwner：在目标群发送 /addtarget [audio|link]，再发 /sync 就只同步该群。\n也可 /addtarget <chat_id> [audio|link]；/removetarget <chat_id> /authstatus /health。\n把 Bot 加入群并设为管理员；入群不会自动授权，授权后会按原定时同步。';
 const COMMANDS = new Set(['status', 'sync', 'targets', 'addtarget', 'removetarget', 'enable', 'disable', 'authstatus', 'health']);
 const OWNER_ONLY = new Set(['addtarget', 'removetarget', 'authstatus', 'health']);
 
@@ -106,13 +106,13 @@ async function execute(input, env, role) {
     }
     await reply(env, chatId, lines.join('\n') || '暂无目标。');
   } else if (command === 'addtarget') {
-    const targetId = targetArgument(args[0]);
-    const mode = args[1] || 'audio';
-    if (!targetId || !['audio', 'link'].includes(mode)) {
-      await reply(env, chatId, '用法：/addtarget <数字 chat_id> [audio|link]');
+    const target = addTargetArguments(input);
+    if (!target) {
+      await reply(env, chatId, '用法：在目标群发送 /addtarget [audio|link]；私聊使用 /addtarget <数字 chat_id> [audio|link]。');
       return;
     }
-    if (targetId < 0 && !(await isGroupAdmin(env, targetId, userId))) {
+    const { targetId, mode } = target;
+    if (targetId < 0 && targetId !== chatId && !(await isGroupAdmin(env, targetId, userId))) {
       await reply(env, chatId, '你还必须是该 Telegram 群组的管理员。');
       return;
     }
@@ -120,7 +120,7 @@ async function execute(input, env, role) {
     await env.DB.prepare("INSERT INTO targets(chat_id,type,send_mode,initial_mode) VALUES(?,?,?,'all') "
       + 'ON CONFLICT(chat_id) DO UPDATE SET removed=0,enabled=1,send_mode=excluded.send_mode')
       .bind(targetId, targetId < 0 ? 'group' : 'user', mode).run();
-    await reply(env, chatId, '目标已授权。同步时会补发歌单中尚未发送的歌曲。');
+    await reply(env, chatId, `目标已授权：${targetId}（${mode}）。\n同步时会补发歌单中尚未发送的歌曲。${targetId === chatId && input.chatType !== 'private' ? '\n等 10 秒后在本群发送 /sync，就只同步本群。' : ''}`);
   } else if (command === 'removetarget') {
     const targetId = targetArgument(args[0]);
     if (!targetId) { await reply(env, chatId, '用法：/removetarget <数字 chat_id>'); return; }
@@ -163,6 +163,15 @@ function targetArgument(value) {
   if (!/^-?\d+$/.test(value || '')) return null;
   const id = Number(value);
   return Number.isSafeInteger(id) && id !== 0 ? id : null;
+}
+
+function addTargetArguments({ args, chatId, chatType }) {
+  if (chatType !== 'private' && (args.length === 0 || (args.length === 1 && ['audio', 'link'].includes(args[0])))) {
+    return { targetId: chatId, mode: args[0] || 'audio' };
+  }
+  const targetId = targetArgument(args[0]);
+  const mode = args[1] || 'audio';
+  return targetId && args.length <= 2 && ['audio', 'link'].includes(mode) ? { targetId, mode } : null;
 }
 
 async function dispatch(env, scope, replyChatId) {

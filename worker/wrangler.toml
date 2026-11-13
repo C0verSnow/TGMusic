@@ -5,7 +5,7 @@ compatibility_date = "2026-11-01"
 [vars]
 GITHUB_REPOSITORY = "C0verSnow/TGMusic"
 GITHUB_REF = "main"
-TELEGRAM_BOT_USERNAME = "C0verSnow_TGMusic_Test_bot"
+TELEGRAM_BOT_USERNAME = "C0verSnow_TGMusic_bot"
 R2_PROFILE_OBJECT = "auth/google-profile.tar.enc"
 
 [[d1_databases]]

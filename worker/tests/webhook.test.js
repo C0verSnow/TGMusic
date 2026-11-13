@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import worker, { parseUpdate } from '../index.js';
 
-function fixture() {
+function fixture({ memberStatus = 'administrator' } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'tgmusic-worker-'));
   const database = join(dir, 'db.sqlite');
   function query(sql, params = []) {
@@ -25,7 +25,7 @@ function fixture() {
   query("INSERT INTO targets(chat_id,type) VALUES(-100,'group'),(-200,'group')");
   query('INSERT INTO admin_targets(user_id,chat_id) VALUES(2,-100)');
   const env = { TELEGRAM_WEBHOOK_SECRET: 'secret', TELEGRAM_BOT_TOKEN: 'fake-token',
-    TELEGRAM_BOT_USERNAME: 'testbot', GITHUB_REPOSITORY: 'owner/repo', GITHUB_REF: 'main',
+    TELEGRAM_BOT_USERNAME: 'C0verSnow_TGMusic_bot', GITHUB_REPOSITORY: 'owner/repo', GITHUB_REF: 'main',
     GITHUB_WORKFLOW_TRIGGER_TOKEN: 'fake-trigger',
     DB: { prepare(sql) { return { bind(...params) { return {
       async first() { return query(sql, params)[0] || null; },
@@ -39,7 +39,7 @@ function fixture() {
   globalThis.fetch = async (url, options) => {
     calls.push({ url, data: JSON.parse(options.body) });
     if (url.includes('api.github.com')) return new Response(null, { status: 204 });
-    return Response.json({ ok: true, result: url.endsWith('getChatMember') ? { status: 'administrator' } : { message_id: 1 } });
+    return Response.json({ ok: true, result: url.endsWith('getChatMember') ? { status: memberStatus } : { message_id: 1 } });
   };
   let sequence = 0;
   async function send(text, userId = 1, chatId = userId, token = 'secret', updateId) {
@@ -139,11 +139,74 @@ test('admin sync dispatch is limited to assigned targets', async () => {
 test('addressed sync in an authorized group dispatches only that group', async () => {
   const f = fixture();
   try {
-    await f.send('/sync@testbot', 1, -100);
+    await f.send('/sync@C0verSnow_TGMusic_bot', 1, -100);
     assert.deepEqual(f.calls.find(x => x.url.includes('github')).data,
       { ref: 'main', inputs: { reply_chat_id: '-100', target_chat_ids: '[-100]' } });
     f.query('DELETE FROM command_limits');
     await f.send('/sync@anotherbot', 1, -100);
     assert.equal(f.calls.filter(x => x.url.includes('github')).length, 1);
+  } finally { f.cleanup(); }
+});
+
+test('owner authorizes a new group in place, then sync stays in that group', async () => {
+  const f = fixture();
+  try {
+    await f.send('/addtarget@C0verSnow_TGMusic_bot', 1, -300);
+    assert.deepEqual(f.query('SELECT chat_id,type,send_mode,initial_mode FROM targets WHERE chat_id=-300'),
+      [{ chat_id: -300, type: 'group', send_mode: 'audio', initial_mode: 'all' }]);
+    assert.match(f.calls.at(-1).data.text, /-300（audio）/);
+    assert.equal(f.calls.filter(x => x.url.includes('github')).length, 0);
+    f.query('DELETE FROM command_limits');
+    await f.send('/sync@C0verSnow_TGMusic_bot', 1, -300);
+    assert.deepEqual(f.calls.find(x => x.url.includes('github')).data,
+      { ref: 'main', inputs: { reply_chat_id: '-300', target_chat_ids: '[-300]' } });
+  } finally { f.cleanup(); }
+});
+
+test('group shorthand accepts link and reauthorization preserves sending history', async () => {
+  const f = fixture();
+  try {
+    f.query("UPDATE targets SET removed=1,enabled=0,initialized=1 WHERE chat_id=-100");
+    f.query("INSERT INTO history(chat_id,video_id,title,artist,status) VALUES(-100,'abcdefghijk','Song','Artist','sent')");
+    await f.send('/addtarget link', 1, -100);
+    assert.deepEqual(f.query('SELECT removed,enabled,initialized,send_mode FROM targets WHERE chat_id=-100'),
+      [{ removed: 0, enabled: 1, initialized: 1, send_mode: 'link' }]);
+    assert.equal(f.query("SELECT * FROM history WHERE chat_id=-100 AND status='sent'").length, 1);
+    assert.equal(f.query('SELECT send_mode FROM targets WHERE chat_id=-200')[0].send_mode, 'audio');
+  } finally { f.cleanup(); }
+});
+
+test('group shorthand never lets guests or system admins authorize groups', async () => {
+  const f = fixture();
+  try {
+    for (const user of [99, 2]) {
+      await f.send('/addtarget', user, -300);
+      assert.match(f.calls.at(-1).data.text, /权限不足/);
+    }
+    assert.equal(f.query('SELECT * FROM targets WHERE chat_id=-300').length, 0);
+  } finally { f.cleanup(); }
+});
+
+test('owner must also be a Telegram group admin to authorize in place', async () => {
+  const f = fixture({ memberStatus: 'member' });
+  try {
+    await f.send('/addtarget', 1, -300);
+    assert.match(f.calls.at(-1).data.text, /权限不足/);
+    assert.equal(f.query('SELECT * FROM targets WHERE chat_id=-300').length, 0);
+  } finally { f.cleanup(); }
+});
+
+test('private shorthand and malformed target arguments never change targets', async () => {
+  const f = fixture();
+  try {
+    for (const [text, chat] of [['/addtarget', 1], ['/addtarget link', 1], ['/addtarget video', -300],
+      ['/addtarget audio extra', -300], ['/addtarget -400 audio extra', 1]]) {
+      f.query('DELETE FROM command_limits');
+      await f.send(text, 1, chat);
+      assert.match(f.calls.at(-1).data.text, /用法/);
+    }
+    assert.equal(f.query('SELECT * FROM targets').length, 2);
+    await f.send('/addtarget@C0verSnow_TGMusic_Test_bot', 1, -300);
+    assert.equal(f.query('SELECT * FROM targets WHERE chat_id=-300').length, 0);
   } finally { f.cleanup(); }
 });
