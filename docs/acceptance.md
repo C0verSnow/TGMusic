@@ -134,21 +134,22 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 
 ## Issue #5：六小时调度与真实服务联调
 
-分支 `feature/issue-5-six-hour-sync`，草稿 [PR #6](https://github.com/C0verSnow/TGMusic/pull/6)，未合并；真实下载与群内音频发送已通过，用户播放器确认和音频再次运行不重发正在验收。
+分支 `feature/issue-5-six-hour-sync`，[PR #6](https://github.com/C0verSnow/TGMusic/pull/6)，未合并；真实下载与群内音频发送已通过，用户已确认“能正常播放、有声音”，音频再次运行不重发也已通过。
 
 | 项目 | 实际结果与证据 |
 |---|---|
 | 六小时调度 | cron `17 */6 * * *`，UTC 00:17、06:17、12:17、18:17；移除旧间隔门槛，手动请求不推迟定时。正式 `main()` + SQLite 回归已通过 |
 | 首轮自动测试 | `a76aa52` [push CI 43414821023](https://github.com/C0verSnow/TGMusic/actions/runs/43414821023) 通过：Python 39、Worker 8、Worker 打包、Docker 浏览器。[PR CI 43415122375](https://github.com/C0verSnow/TGMusic/actions/runs/43415122375) 第二次通过；首次旧浏览器归档测试 ContextLostError，仅重跑失败任务 |
 | yt-dlp 自动测试 | `93ef185` 的 [push 43418629071](https://github.com/C0verSnow/TGMusic/actions/runs/43418629071) 与 [PR 43418637654](https://github.com/C0verSnow/TGMusic/actions/runs/43418637654) 均通过：Python 43、Worker 8、Worker 打包，push 含 Docker 浏览器。真实 HTTP 下载、Cookie/User-Agent、代理失败不直连、已知/未知大小上限均已通过 |
+| 收尾 CI | `a855036` 的 [push 43419593530](https://github.com/C0verSnow/TGMusic/actions/runs/43419593530) 和 [PR 43419602008](https://github.com/C0verSnow/TGMusic/actions/runs/43419602008) 均通过 |
 | 诊断入口 CI | `ae2ce40` 的 [push 43417509704](https://github.com/C0verSnow/TGMusic/actions/runs/43417509704) 和 [PR 43417516385](https://github.com/C0verSnow/TGMusic/actions/runs/43417516385) 均通过 |
-| Worker | `https://tgmusic-webhook.f1515xcn.workers.dev`，通过 Wrangler `--no-bundle` 直接上传，没有本地构建；首次代码版本 `d2ecc348-cab2-4fdb-952b-1b0a00c9e39c`。联调暂指向 feature；仓库配置保持 main |
+| Worker | `https://tgmusic-webhook.f1515xcn.workers.dev`，通过 Wrangler `--no-bundle` 直接上传，没有本地构建；首次代码版本 `d2ecc348-cab2-4fdb-952b-1b0a00c9e39c`。真实联调用 feature；交付版本 `bbcd5b82-2f4b-4ef9-8bca-7dc2163bbdd1` 已恢复为 main，避免临时分支删除后手动指令失效。新下载器待 PR 合并生效 |
 | Secret Sync | 用户在 `.env` 保存专用 Token 后，验证 active，建立 Example Project 的 `tgmusic-worker-secrets` App Connection（`6bb3b01c-4d6d-4787-9143-4eddc23dc36f`）。自动 Sync `01fddc4a-8d48-480b-a168-1b96b552e9d2` 已 succeeded，来源 prod `/tgmusic/cloudflare-worker`，目标仅 tgmusic-webhook，四项 secret_text。D1、R2、plain_text 绑定均保留。临时源标记自动到达 Worker，lastSyncedAt 更新为 2026-11-13T11:43:21.568Z，证明变更自动触发；验证后清理临时标记 |
 | Webhook | 真实 setWebhook 成功，getWebhookInfo URL 正确、队列 0。明确 User-Agent 后，缺失/错误 Secret 均得到 Worker 原生 `403 Forbidden`，正确 Secret 为 `200 OK`；Python 默认 UA 曾被 Cloudflare 边缘 1010 拒绝，没有把该响应当成 Worker 鉴权证据 |
 | 真实群组 | 用户确认 Music `-1004447109031`；Owner 是 creator，Bot 是 administrator。本机 `tg` 真实账号发送 `/addtarget` 成功；群内 `/sync@C0verSnow_TGMusic_Test_bot` 触发 [43415724056](https://github.com/C0verSnow/TGMusic/actions/runs/43415724056)，VALID、91 首群基线，未动私聊、未群发旧歌 |
 | 样例发送 | 私聊真实 `/sync` 触发 [43415732090](https://github.com/C0verSnow/TGMusic/actions/runs/43415732090)，91 首、旧记录 181、新增 1、成功 1、失败/待核对 0；gHk8MIx6nfY 实际发送 **link**，message_id=18、attempts=1。`tg history` 读到歌曲标题和原链接。不是音频播放通过 |
-| 端到端去重 | 再次真实 `/sync` 的 [43417863729](https://github.com/C0verSnow/TGMusic/actions/runs/43417863729) 成功，VALID、91 首、already_sent=182，new/success/failed/held 均 0。私聊样例仍 message_id=18、attempts=1；重放相同真实 Webhook update_id 返回 200，审计数 5→5，没有再分发 |
-| 音频失败定位 | 旧代码 [check-audio 43417558822](https://github.com/C0verSnow/TGMusic/actions/runs/43417558822)：Google VALID，但旧 player playable=false、音频格式 0；没有发送消息或改歌曲历史。用户建议借鉴开源下载器后，接入 yt-dlp 2026.10.26 + EJS 0.8.0，[check-audio 43418750075](https://github.com/C0verSnow/TGMusic/actions/runs/43418750075) 已通过，生成 .mp3 4,335,021 字节；真实群内 [sync 43419183416](https://github.com/C0verSnow/TGMusic/actions/runs/43419183416) 已记录 sent/audio、message_id=7、attempts=1，`tg history` 读到文件消息。用户播放器确认待完成 |
+| 端到端去重 | 再次真实 `/sync` 的 [43417863729](https://github.com/C0verSnow/TGMusic/actions/runs/43417863729) 成功，VALID、91 首、already_sent=182，new/success/failed/held 均 0。私聊样例仍 message_id=18、attempts=1；重放相同真实 Webhook update_id 返回 200，审计数 5→5，没有再分发。群内音频发送后再次真实 `/sync` 的 [43419573467](https://github.com/C0verSnow/TGMusic/actions/runs/43419573467) 成功，歌曲仍 sent/audio、message_id=7、attempts=1，没有重新发送 |
+| 音频失败定位 | 旧代码 [check-audio 43417558822](https://github.com/C0verSnow/TGMusic/actions/runs/43417558822)：Google VALID，但旧 player playable=false、音频格式 0；没有发送消息或改歌曲历史。用户建议借鉴开源下载器后，接入 yt-dlp 2026.10.26 + EJS 0.8.0，[check-audio 43418750075](https://github.com/C0verSnow/TGMusic/actions/runs/43418750075) 已通过，生成 .mp3 4,335,021 字节；真实群内 [sync 43419183416](https://github.com/C0verSnow/TGMusic/actions/runs/43419183416) 已记录 sent/audio、message_id=7、attempts=1，`tg history` 读到文件消息。用户已亲自确认正常播放且有声音 |
 
 指定歌曲原本就在旧 91 首基线；经用户明确同意，备份并只撤销私聊该首未发送 baseline，预计历史同步从 91 改为 90，再由正式同步发送。该测试模拟新增，不描述成歌单实际新增；随后音频下载通过后，按同一歌曲的验收授权，也只撤销该首群内未发送 baseline，让正式群同步发送一次 MP3；私聊 link 发送记录保留。没有删除已发送记录或其他歌曲。
 

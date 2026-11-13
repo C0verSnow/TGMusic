@@ -1,9 +1,15 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
 ## 想做：
+- [1794570421] Issue #5 的 PR #6 交用户 review；合并后将 TGMUSIC_ENABLED=true，启用六小时定时。交付前 Worker 恢复指向 main，不依赖临时功能分支；不擅自合并。
+
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794570528] Issue #5 全部功能验收完成：yt-dlp 真实下载、Music 群 MP3 与用户播放确认、音频再次同步不重发（43419573467）、Worker / Webhook / 自动 Secret Sync 均通过。a855036 的 push CI 43419593530 和 PR CI 43419602008 全通过；最新实现为 Python 43、Worker 8。Worker 已通过 --no-bundle 恢复 main（版本 bbcd5b82-2f4b-4ef9-8bca-7dc2163bbdd1），四项业务 Secrets 保留。准备提交收尾记录、PR 转待 review 并按要求关闭 Issue，不合并、不提前开启旧定时。
+
+- [1794570421] 用户已亲自确认 Music 群音频正常播放、有声音。真实群音频 sync 43419183416 全部成功，指定歌曲 sent/audio、message_id=7、attempts=1；私聊 link 记录保留。Secret Sync 自动事件已验收，临时标记已从 Infisical 和 Worker 清理，两端恢复四项业务密钥。没有进行本地编译验证。
+
 - [1794570059] Issue #5 阶段验收：真实 Worker、Webhook、Infisical 自动 Secret Sync、Music 群授权和 91 首基线、私聊样例链接发送已完成。重复同步 43417863729 为 182 已处理、0 新增/发送/失败/待核对；重复 Webhook update_id 的审计 5→5。实际音频仍未通过，不关闭 Issue、不把草稿 PR 当完成。
 
 - [1794554016] Issue #3 已完成并按用户要求关闭；PR #4 已转为待 review，未合并。真实 Runner 43382782005 自动登录、读取 91 首并建基线；下一台 43383234383 直接 VALID、91 首已处理、0 新增/发送/失败/待核对。D1 读回基线与预计条数均为 91，租约已释放；TGMUSIC_ENABLED=false。
