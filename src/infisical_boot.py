@@ -21,8 +21,8 @@ def main():
     if env.get("GITHUB_ACTIONS") == "true":
         print("::add-mask::" + env["INFISICAL_TOKEN"], flush=True)
     command = ["infisical", "run", "--expand=false", "--domain=" + domain, "--projectId=" + env["INFISICAL_PROJECT_ID"],
-               "--env=" + (env.get("INFISICAL_ENVIRONMENT") or "prod"),
-               "--path=" + (env.get("INFISICAL_SECRET_PATH") or "/github-actions"),
+               "--env=" + (env.get("INFISICAL_ENVIRONMENT") or "dev"),
+               "--path=" + (env.get("INFISICAL_SECRET_PATH") or "/tgmusic/github-actions"),
                "--", sys.executable, *sys.argv[1:]]
     return subprocess.run(command, env=env, check=False).returncode
 

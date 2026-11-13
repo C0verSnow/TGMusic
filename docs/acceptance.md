@@ -190,3 +190,11 @@ Issue #7 已按用户要求关闭；[PR #8](https://github.com/C0verSnow/TGMusic
 | 自动分轮 | 正式 main、History/sync_targets 验证发布与备份后才排队、下一轮不重复发送且最终完成；失败/待核对/无进展不自动循环。真实 HTTP 夹具验证 GitHub dispatch 的分支、目标范围、回执聊天及失败不盲重试 |
 
 最终实现 300b5d7 的 [push CI 43439202594](https://github.com/C0verSnow/TGMusic/actions/runs/43439202594) 与 [PR CI 43439211567](https://github.com/C0verSnow/TGMusic/actions/runs/43439211567) 全部通过：Python **74 项**、Worker **8 项**、Worker 远端打包，push 另通过预构建 Docker 浏览器。Issue #9 已按要求关闭；PR #10 已转为待 review，未合并。本次未进行本地构建、编译、测试或冒烟；只做代码阅读、AST 静态语法检查和 git diff --check。已检索并比较 GitHub 上的 python-telegram-bot 和 aiogram，来源与取舍见设计文档。未执行生产全歌单批量补发、未部署 feature Worker、未合并 PR；合并后 /sync 使用新逻辑。旧 Infisical 样例名单可以保留为废弃键，不再影响正常同步。
+
+## 本次密钥整理（1794586463）
+
+运行环境已统一为 Example Project dev。Runner 13 项、Worker 4 项逐项回读一致；组织机器身份可读取新的应用目录。组织保存两项凭证和三项非敏感 Variables，本仓库保存路径 Secret。旧 main 的路径 Variable 暂留，合并 PR #12 后清理。
+
+Cloudflare 官方自动同步已切到 dev，2026-11-13T16:05:18.998Z 成功；Wrangler 确认线上仍为四项 secret_text。没有发送业务消息或改写登录档案；旧项目和 prod 目录保留回退。
+
+远端 CI 43459930951、43459834459、43460099114 全部通过，包括真实组织凭证读取及原有测试。本地只做 AST、YAML 和差异检查，没有本地编译或测试。GitHub 已检索并比较官方 CLI 与 Secrets Action，继续沿用现有 CLI。

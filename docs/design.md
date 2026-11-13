@@ -155,3 +155,7 @@ Worker 是无外部 import 的原生 ES module，可用 `wrangler deploy --no-bu
 续跑使用 [GitHub 官方触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)：GITHUB_TOKEN 的 workflow_dispatch 是能创建新运行的例外；不额外引入长期 Token。[并发队列规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) 明确 queue: max 可保留多个 pending 运行。R2 更新继续沿用已有条件写入，不引入新的存储流程。
 
 本仓库流程优先于技能的一般迁移建议：TGMusic 现有 Bot API 的调用与回执不迁往个人账号 CLI；如读取真实聊天，使用已经授权的 gotd/cli tg 会话，不新增 Telegram 客户端。
+
+## 本次组织配置统一（1794586463）
+
+按 browser-persistent-runner 技能统一使用 Example Project dev，组织共用机器身份，仓库只提供应用目录 Secret；定位参数使用组织 Variables。原 prod 路径只作回退。沿用 [Infisical CLI](https://github.com/Infisical/cli) 0.45.6 和 [Workers Secret Sync](https://infisical.com/docs/integrations/secret-syncs/cloudflare-workers)，不新增存储或网络方案。再次核对 [Secrets Action](https://github.com/Infisical/secrets-action) 的 #40 已获响应关闭，CLI 当天有提交及近期 issue 讨论；继续使用已验证的 CLI，不引入新的 Action 依赖。

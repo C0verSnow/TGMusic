@@ -64,7 +64,7 @@ jobs:
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}
           INFISICAL_ENVIRONMENT: ${{ vars.INFISICAL_ENVIRONMENT }}
-          INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
+          INFISICAL_SECRET_PATH: ${{ secrets.INFISICAL_SECRET_PATH }}
           INFISICAL_API_URL: ${{ vars.INFISICAL_API_URL }}
         run: |
           if [ "$TGMUSIC_OPERATION" = bootstrap ]; then
