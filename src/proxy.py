@@ -41,18 +41,16 @@ class Network:
     def reachable(self):
         try:
             response = self.session.get("https://music.youtube.com/", timeout=20)
-            ready = "INNERTUBE_CONTEXT" in response.text
-            if response.status_code != 200 or not ready:
-                logging.warning("YouTube connectivity check: HTTP %d, page configuration present=%s",
-                                response.status_code, ready)
-            return response.status_code == 200 and ready
+            if response.status_code != 200:
+                logging.warning("YouTube connectivity check: HTTP %d", response.status_code)
+            return response.status_code == 200
         except requests.RequestException as error:
             logging.warning("YouTube connectivity check: %s", type(error).__name__)
             return False
 
     def start_mihomo(self):
         if not self.config.mihomo_config_yaml:
-            raise SyncError("YouTube is blocked; MIHOMO_CONFIG_YAML is required for fallback")
+            raise SyncError("Mihomo fallback requires MIHOMO_CONFIG_YAML")
         if not os.path.exists("/dev/net/tun"):
             raise SyncError("TUN device unavailable")
         try:

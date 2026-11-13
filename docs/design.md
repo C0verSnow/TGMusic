@@ -83,3 +83,6 @@ PR #2 合并后，`sync.yml` 已注册在默认分支。原来的 job 开关同�
 本轮在 GitHub 检索了 [Infisical CLI](https://github.com/Infisical/cli) 和 [Infisical Secrets Action](https://github.com/Infisical/secrets-action)，比较现有 CLI 子进程注入与额外引入 JavaScript Action 的实现。2026-11-13 核对时，CLI 101 星、当天有提交，许可证明确区分普通代码的 MIT Expat 与 ee/ 的单独条款；Secrets Action 82 星、MIT、最近提交为 2026-09-14，近期关闭的问题包括 #40 的 project-id 支持。两者均不是高星的新候选，不引入任何新组件。本项目继续使用已锁定、已在 CI 验证的 CLI 0.45.6 与现有 `infisical_boot.py`，不复制其代码。
 
 工作流条件和输入采用 [GitHub 官方手动触发文档](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow) 的事件与输入上下文；不依赖额外分发服务或第三方 Action。真实初始化前先只读核对 D1 installation/targets/history 均为 0，且 R2 没有安装标识。初始化后不能通过重跑 bootstrap 清空或修复生产状态。
+
+
+新 Runner 暴露的网络误判：匿名 Python 请求拿到 HTTP 200，但响应不包含 `INNERTUBE_CONTEXT`，旧版把它判为网络不通，立即要求未配置的 Mihomo。网络探测现在只判断 HTTP 成功；应用和登录状态仍由恢复档案后的真实浏览器与收藏 API 判断，UNKNOWN / 收藏读取失败仍按原流程尝试备用代理。只记录失败 HTTP 状态或异常类型，不记录网页和凭证，也不再把缺代理配置描述成已证实被封锁。用户明确要求直连正常时不启用 Mihomo。
