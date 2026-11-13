@@ -6,6 +6,8 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794570635] Issue #5 已按用户要求关闭；PR #6 已转待 review，未合并。真实音频、用户播放、两次去重、Worker / Webhook / 自动 Secret Sync 与功能 CI 已通过，收尾文档 79950de 继续由现有远端 CI 检查。Worker 指向 main，TGMUSIC_ENABLED=false，六小时定时和新下载器待 review 合并后生效；README、设计、研究与验收记录均已更新。本轮 GitHub 已检索同类项目，未进行本地编译验证。
+
 - [1794570528] Issue #5 全部功能验收完成：yt-dlp 真实下载、Music 群 MP3 与用户播放确认、音频再次同步不重发（43419573467）、Worker / Webhook / 自动 Secret Sync 均通过。a855036 的 push CI 43419593530 和 PR CI 43419602008 全通过；最新实现为 Python 43、Worker 8。Worker 已通过 --no-bundle 恢复 main（版本 bbcd5b82-2f4b-4ef9-8bca-7dc2163bbdd1），四项业务 Secrets 保留。准备提交收尾记录、PR 转待 review 并按要求关闭 Issue，不合并、不提前开启旧定时。
 
 - [1794570421] 用户已亲自确认 Music 群音频正常播放、有声音。真实群音频 sync 43419183416 全部成功，指定歌曲 sent/audio、message_id=7、attempts=1；私聊 link 记录保留。Secret Sync 自动事件已验收，临时标记已从 Infisical 和 Worker 清理，两端恢复四项业务密钥。没有进行本地编译验证。
