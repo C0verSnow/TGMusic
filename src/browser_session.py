@@ -60,6 +60,14 @@ class BrowserSession:
                 self.browser_version = manifest.get("browser_version", "")
                 os.replace(unpacked / "user-data", destination)
         self.digest = profile_digest(destination, self.ini_path)
+        import sqlite3
+        for cookie_path in (destination / "Default" / "Cookies", destination / "Default" / "Network" / "Cookies"):
+            if cookie_path.is_file():
+                with sqlite3.connect(f"file:{cookie_path}?mode=ro", uri=True) as db:
+                    counts = db.execute("SELECT hex(substr(encrypted_value,1,3)),count(*) FROM cookies "
+                                        "WHERE host_key LIKE '%youtube.com' OR host_key LIKE '%google.com' "
+                                        "GROUP BY 1").fetchall()
+                logging.warning("[DEBUG-issue3] Archived Google/YouTube cookie encryption prefix counts: %s", counts)
 
     def start(self, initial_url="https://music.youtube.com/"):
         from DrissionPage import ChromiumOptions, ChromiumPage
@@ -73,12 +81,21 @@ class BrowserSession:
             options.set_proxy(self.proxy_url)
         self.page = ChromiumPage(options)
         self.page.get(initial_url)
-        self.browser_version = self.page.run_js("return navigator.userAgent")
+        runtime_version = self.page.run_js("return navigator.userAgent")
+        logging.warning("[DEBUG-issue3] Archived browser=%s; Runner browser=%s", self.browser_version, runtime_version)
+        self.browser_version = runtime_version
         return self.page
 
     def detect_auth(self):
         self.auth_state = detect_auth(self.page)
         logging.info("Google auth: %s", self.auth_state)
+        if self.auth_state != "VALID":
+            context = self.page.run_js("return {host:location.hostname, logged:window.ytcfg?.get('LOGGED_IN'),"
+                                       " ready:!!window.ytcfg?.get('INNERTUBE_CONTEXT')};")
+            cookies = self.page.cookies(all_domains=True, all_info=True)
+            count = sum(c["name"] in {"SID", "HSID", "SSID", "SAPISID", "APISID", "__Secure-3PAPISID"}
+                        for c in cookies)
+            logging.warning("[DEBUG-issue3] Browser auth context=%s; loaded auth cookie count=%d", context, count)
         return self.auth_state
 
     def close(self):
