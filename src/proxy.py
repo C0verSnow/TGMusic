@@ -41,8 +41,13 @@ class Network:
     def reachable(self):
         try:
             response = self.session.get("https://music.youtube.com/", timeout=20)
-            return response.status_code == 200 and "INNERTUBE_CONTEXT" in response.text
-        except requests.RequestException:
+            ready = "INNERTUBE_CONTEXT" in response.text
+            if response.status_code != 200 or not ready:
+                logging.warning("YouTube connectivity check: HTTP %d, page configuration present=%s",
+                                response.status_code, ready)
+            return response.status_code == 200 and ready
+        except requests.RequestException as error:
+            logging.warning("YouTube connectivity check: %s", type(error).__name__)
             return False
 
     def start_mihomo(self):

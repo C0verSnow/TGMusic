@@ -4,6 +4,7 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794550758] Issue #3 首次远端 CI 43377571761 已通过：Python 35 项、Worker 7 项、Docker 浏览器及 Worker 打包。真实 Runner bootstrap 43377633951 已成功；读回确认 D1 与 R2 安装标识一致，未启动定时。已提交正常 sync 进行真实档案恢复和收藏基线验收。
 - [1794549897] 配置提交 3eb9fa4 的 PR CI 43375794236 已通过；push CI 43375787609 的 Docker 任务因拉镜像限流首次失败，只重跑失败任务后第二次全部通过。未修改应用逻辑或镜像配置。另用 Wrangler 确认 R2 无 sync/installation.json，D1/R2 尚未初始化。
 - [1794549664] 已核对 GitHub 官方 workflow_dispatch 规则与 Infisical Secret Sync 文档；本轮未实现陌生功能，未新增同类开源项目检索，沿用 docs/design.md 已记录项目。差异检查通过；宿主 Python 缺 tomllib，未安装新工具，TOML 配置交给现有远端 CI 解析。未进行本地编译验证。
 - [1794549631] 两项业务令牌已补齐：Actions 现有 11 项必需配置、Worker 4 项；机器身份成功读回。新 GitHub Token 可读取 TGMusic 仓库与 Actions 工作流列表，尚未真实触发。TGMUSIC_ENABLED=false 已回读。main 目前只有文档，Actions 仅注册 CI；sync.yml 需要进入默认分支才能首次手动触发，未擅自合并 PR。
@@ -78,6 +79,8 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794550857] 真实 sync 43377824326 在 Network.start 的直连检查失败，提示缺少 MIHOMO_CONFIG_YAML，尚未打开浏览器。现有远端工作流即反馈入口；按用户禁止本地测试要求，不本地复现。优先区分 HTTP 拒绝、200 但页面不含配置、请求层异常三种原因，补充仅状态码/异常类型的日志；已询问用户可用美国代理配置的位置。
+- [1794550657] 首次提交 1a54493 已推送，远端 CI 43377571761 正在执行；现有 Worker 触发令牌成功将 bootstrap 手动任务提交至 GitHub（HTTP 204），目标为本次 feature 分支。初始化前已确认空安装，定时始终关闭。
 - [1794550591] 真实预检查已确认 D1 三类数据均为空、R2 无安装标识、定时开关为 false。新增正式 bootstrap 的 SQLite 回归测试，远端执行；GitHub 已检索 Infisical CLI / Secrets Action，比较后不引入新依赖，记录到设计文档。
 - [1794550488] 已为手动任务增加 sync/bootstrap 选项，启用开关仅控制定时；从本仓库 .env 登录 Infisical，读取现有两组配置用于真实远端验收，不输出密钥。沿用现有 CLI 与正式初始化逻辑，不新增部署工具。
 - [1794550375] 开始处理 Issue #3：已读取 issue 和全部任务记录；PR #2 已合并，基于最新 origin/main 建立 feature/issue-3-runner-integration。先核对真实 Runner 初始化与手动验收入口，定时同步保持关闭，不进行本地构建、编译或测试。
