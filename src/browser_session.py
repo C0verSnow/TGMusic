@@ -89,7 +89,7 @@ class BrowserSession:
     def detect_auth(self):
         self.auth_state = detect_auth(self.page)
         logging.info("Google auth: %s", self.auth_state)
-        if self.auth_state != "VALID":
+        if self.auth_state != "VALID" and os.getenv("GITHUB_WORKFLOW") == "YouTube Music Sync":
             context = self.page.run_js("return {host:location.hostname, logged:window.ytcfg?.get('LOGGED_IN'),"
                                        " ready:!!window.ytcfg?.get('INNERTUBE_CONTEXT')};")
             cookies = self.page.cookies(all_domains=True, all_info=True)
@@ -100,7 +100,12 @@ class BrowserSession:
             time.sleep(5)
             logging.warning("[DEBUG-issue3] Auth after waiting=%s", detect_auth(self.page))
             self.page.refresh()
+            time.sleep(5)
             logging.warning("[DEBUG-issue3] Auth after reload=%s", detect_auth(self.page))
+            self.page.get("https://myaccount.google.com/")
+            time.sleep(2)
+            logging.warning("[DEBUG-issue3] Google account landing host=%s",
+                            self.page.run_js("return location.hostname"))
         return self.auth_state
 
     def close(self):
