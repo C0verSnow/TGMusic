@@ -47,6 +47,8 @@ Infisical 0.45.6 Linux amd64 包 SHA-256 为 `b427391e76113e351fa0509d6493cb4005
 
 Docker 登录入口不要求 D1/Telegram 配置，因而没有取得同步主流程的 D1 租约。它在打开浏览器前读取主档案 ETag，上传时沿用该 ETag；首次档案则使用 If-None-Match。冲突保留云端当前对象与本地加密副本，交由用户核对后重新开展登录流程。
 
+真实档案读回时发现，不能仅凭 `Default/Cache` 是否存在判断有无缓存：User Data 中还包括 GPUCache、Service Worker/CacheStorage 等缓存。本次档案共 673 项，其中 238 项路径与缓存有关。按 [Chromium 官方目录说明](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md#User-Cache-Directory)，Linux 的网页磁盘缓存也可能位于 User Data 之外的 `~/.cache/chromium`。当前归档范围是完整 Chromium User Data 与 ini，不包含外部 XDG 缓存或整个桌面容器配置目录。此次修正的是临时核对条件与文档描述，没有改归档代码。
+
 ## 状态与失败边界
 
 D1 保存 installation、targets、history、roles、admin_targets、审计及命令限频。R2 保存独立安装标识、加密档案、逐首发送回执及 latest.md。安装标识及历史预计条数用于区分真实首次安装与意外数据丢失。

@@ -85,7 +85,7 @@ macOS/Windows 可使用仓库提供的预构建 Linux Chromium，不需要在宿
 bash scripts/docker-login.sh --ini config/browser.ini
 ```
 
-打开终端提示的 `http://127.0.0.1:3000`，在里面亲自登录 Google，并进入 YouTube Music；密码、验证码和二次验证由本人填写。登录有效后，程序自动停止浏览器容器，把**完整 ini 和完整 Chromium 用户目录**一起归档，再加密上传私有 R2。缓存、Local Storage 和空目录都保留，只排除 Chromium 的运行锁及调试端口文件。端口被占用时可加 `--port 3001`。
+打开终端提示的 `http://127.0.0.1:3000`，在里面亲自登录 Google，并进入 YouTube Music；密码、验证码和二次验证由本人填写。登录有效后，程序自动停止浏览器容器，把**完整 ini 和完整 Chromium User Data 目录**一起归档，再加密上传私有 R2。该目录内的缓存、Local Storage 和空目录都保留，只排除 Chromium 的运行锁及调试端口文件。Linux 按 XDG 规则放在 User Data 目录外的网页磁盘缓存不属于本归档范围；不是整个容器 `/config` 的备份。端口被占用时可加 `--port 3001`。
 
 成功后清理本次明文用户目录，加密副本留在 `.runtime/docker-login/google-profile.latest.enc`。如果关闭浏览器后的上传失败，保留现场，修复配置后执行：
 
@@ -170,7 +170,7 @@ python src/infisical_boot.py src/manage.py grant-admin 123456789 -1001234567890
 
 Telegram Bot API 不提供任意聊天历史查询，无法承诺跨 Telegram 与 D1 的严格事务或自动核对所有不确定结果。
 
-收藏分页必须完整读完才修改歌曲状态。R2/D1 不可用、安装标识不一致、历史数量异常、登录 UNKNOWN 会停止；EXPIRED 会通知 Owner，保留旧档案。浏览器退出后才归档，保留完整 ini、缓存及用户数据，只排除运行锁和调试端口文件。Fernet 提供认证加密，SHA-256 校验内容；新版本使用 ETag 条件覆盖，并保留独立加密版本。同步任务和 `manage login` 共用 D1 租约；Docker 登录独立运行，以登录前读取的 ETag 防止覆盖期间出现的云端更新。
+收藏分页必须完整读完才修改歌曲状态。R2/D1 不可用、安装标识不一致、历史数量异常、登录 UNKNOWN 会停止；EXPIRED 会通知 Owner，保留旧档案。浏览器退出后才归档，保留完整 ini 和 User Data 内的缓存及用户数据，只排除运行锁和调试端口文件。Fernet 提供认证加密，SHA-256 校验内容；新版本使用 ETag 条件覆盖，并保留独立加密版本。同步任务和 `manage login` 共用 D1 租约；Docker 登录独立运行，以登录前读取的 ETag 防止覆盖期间出现的云端更新。
 
 ## 网络与音频
 
