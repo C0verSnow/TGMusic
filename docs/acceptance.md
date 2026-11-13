@@ -98,3 +98,8 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 
 - [1794474792] 用户决定先完成 PR，暂不联调真实 Telegram。因此保留 Issue，等待作者 review；不申请后续长期凭证，不部署 Worker 或开启定时同步。已有 Infisical 项目、空密钥目录、D1 表和私有 R2 桶保留。
 - [1794474792] 仅运行源码静态解析、脚本静态语法及差异检查，没有进行本地构建、编译或测试。
+
+
+## Issue #3：新 Runner 联调（进行中）
+
+PR #2 已合并到 main，同步工作流已注册。真实只读预检查确认 D1 installation/targets/history 均为 0，R2 不存在 `sync/installation.json`，GitHub `TGMUSIC_ENABLED=false`。本次在 feature/issue-3-runner-integration 增加独立的手动 bootstrap 入口，并允许手动任务在定时关闭时运行；正式验收证据将在 Runner 执行后补充。

@@ -74,3 +74,12 @@ D1 租约与 Actions concurrency 防止同一安装重叠执行；租约 35 分�
 - Xvfb 无法替人处理 Google 验证码。
 - 确认有下载和再分发授权后才将 videoId 加入授权清单；默认偏好音频与实际发出音频是两件事。
 - 仓库为空，没有原有 CI；本次为交付要求增加远端测试工作流，未引入本地编译验证流程。
+
+
+## Issue #3：新 Runner 手动联调入口
+
+PR #2 合并后，`sync.yml` 已注册在默认分支。原来的 job 开关同时挡住手动和定时任务，导致必须先开启定时才能验收。现在 `TGMUSIC_ENABLED` 只控制定时任务，显式 `workflow_dispatch` 可以运行；Worker 的 `/sync` 同属手动触发。手动输入 `operation` 默认 `sync`，只有选择 `bootstrap` 才调用现有管理命令初始化空安装，不将初始化混入正常同步。两种操作共用原来的 Actions concurrency。
+
+本轮在 GitHub 检索了 [Infisical CLI](https://github.com/Infisical/cli) 和 [Infisical Secrets Action](https://github.com/Infisical/secrets-action)，比较现有 CLI 子进程注入与额外引入 JavaScript Action 的实现。2026-11-13 核对时，CLI 101 星、当天有提交，许可证为仓库 LICENSE 自定义条款；Secrets Action 82 星、MIT、最近提交为 2026-09-14，近期关闭的问题包括 #40 的 project-id 支持。两者均不是高星的新候选，不引入任何新组件。本项目继续使用已锁定、已在 CI 验证的 CLI 0.45.6 与现有 `infisical_boot.py`，不复制其代码。
+
+工作流条件和输入采用 [GitHub 官方手动触发文档](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow) 的事件与输入上下文；不依赖额外分发服务或第三方 Action。真实初始化前先只读核对 D1 installation/targets/history 均为 0，且 R2 没有安装标识。初始化后不能通过重跑 bootstrap 清空或修复生产状态。

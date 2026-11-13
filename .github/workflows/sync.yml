@@ -4,6 +4,13 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
+      operation:
+        description: 'sync runs normally; bootstrap explicitly initializes empty D1/R2 once'
+        type: choice
+        options:
+          - sync
+          - bootstrap
+        default: sync
       target_chat_ids:
         description: 'Optional JSON array of authorized target chat IDs; empty means all'
         required: false
@@ -15,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   sync:
-    if: vars.TGMUSIC_ENABLED == 'true'
+    if: github.event_name == 'workflow_dispatch' || vars.TGMUSIC_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -30,8 +37,9 @@ jobs:
           sudo apt-get install -y xvfb ffmpeg libnss3-tools
       - name: Install pinned and verified tools
         run: bash scripts/install-tools.sh
-      - name: Fetch secrets and run sync
+      - name: Fetch secrets and run selected operation
         env:
+          TGMUSIC_OPERATION: ${{ inputs.operation || 'sync' }}
           SYNC_TARGET_CHAT_IDS: ${{ inputs.target_chat_ids }}
           INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
@@ -39,4 +47,9 @@ jobs:
           INFISICAL_ENVIRONMENT: ${{ vars.INFISICAL_ENVIRONMENT }}
           INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
           INFISICAL_API_URL: ${{ vars.INFISICAL_API_URL }}
-        run: xvfb-run -a python src/infisical_boot.py src/main.py
+        run: |
+          if [ "$TGMUSIC_OPERATION" = bootstrap ]; then
+            python src/infisical_boot.py src/manage.py bootstrap
+          else
+            xvfb-run -a python src/infisical_boot.py src/main.py
+          fi

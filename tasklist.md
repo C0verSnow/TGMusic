@@ -78,6 +78,9 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794550591] 真实预检查已确认 D1 三类数据均为空、R2 无安装标识、定时开关为 false。新增正式 bootstrap 的 SQLite 回归测试，远端执行；GitHub 已检索 Infisical CLI / Secrets Action，比较后不引入新依赖，记录到设计文档。
+- [1794550488] 已为手动任务增加 sync/bootstrap 选项，启用开关仅控制定时；从本仓库 .env 登录 Infisical，读取现有两组配置用于真实远端验收，不输出密钥。沿用现有 CLI 与正式初始化逻辑，不新增部署工具。
+- [1794550375] 开始处理 Issue #3：已读取 issue 和全部任务记录；PR #2 已合并，基于最新 origin/main 建立 feature/issue-3-runner-integration。先核对真实 Runner 初始化与手动验收入口，定时同步保持关闭，不进行本地构建、编译或测试。
 - [1794549897] 本轮令牌补齐和配置记录已完成，等待用户 review PR #2；真实 Runner 首次启动需要同步工作流进入默认分支。未合并 PR、未关闭 Issue、未部署 Worker或开启定时；本轮没有本地构建、编译、测试或冒烟验证。
 - [1794549788] 远端日志定位到 Docker 拉镜像返回 toomanyrequests，容器还未启动；Python、Worker 测试及打包已通过。现有 CI 本身就是反馈入口；失败来自镜像仓库限流，跳过本地复现、假设枚举和回归代码，只重跑失败任务，不扩大实现。
 - [1794549771] 3eb9fa4 已推送；push CI 43375787609 报失败，PR CI 仍在运行。正在读取远端失败任务日志，按 diagnosing-bugs 流程定位，不进行本地复现或编译验证。
