@@ -1,11 +1,13 @@
 # 本文档为4象限的任务清单，全文书写大白话
 
 ## 想做：
+- [1794576054] PR #8 等用户 review；合并后同步逻辑会按预算补发旧 baseline。正式 Worker 需更新才能把同步结果送回发指令的聊天，部署与真实补发不在本轮自动执行。
 - [1794570421] Issue #5 的 PR #6 交用户 review；合并后将 TGMUSIC_ENABLED=true，启用六小时定时。交付前 Worker 恢复指向 main，不依赖临时功能分支；不擅自合并。
 
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794576054] Issue #7 已完成并按要求关闭；PR #8 保持 open 待用户 review，未合并或部署。实现 c5070ad 的 push CI 43432415608 与 PR CI 43432426945 全通过：Python 58、Worker 8、Worker 打包，push 另通过 Docker 浏览器。已实现按聊天补发旧 baseline，生成并自动发布 docs/latest.md，只有无剩余且文档发布、备份成功才报告完成；初版清单来自真实 D1 只读导出。本轮 GitHub 已检索比较 python-telegram-bot/aiogram，未进行本地编译、构建或测试，未触发真实歌曲补发。
 - [1794570635] Issue #5 已按用户要求关闭；PR #6 已转待 review，未合并。真实音频、用户播放、两次去重、Worker / Webhook / 自动 Secret Sync 与功能 CI 已通过，收尾文档 79950de 继续由现有远端 CI 检查。Worker 指向 main，TGMUSIC_ENABLED=false，六小时定时和新下载器待 review 合并后生效；README、设计、研究与验收记录均已更新。本轮 GitHub 已检索同类项目，未进行本地编译验证。
 
 - [1794570528] Issue #5 全部功能验收完成：yt-dlp 真实下载、Music 群 MP3 与用户播放确认、音频再次同步不重发（43419573467）、Worker / Webhook / 自动 Secret Sync 均通过。a855036 的 push CI 43419593530 和 PR CI 43419602008 全通过；最新实现为 Python 43、Worker 8。Worker 已通过 --no-bundle 恢复 main（版本 bbcd5b82-2f4b-4ef9-8bca-7dc2163bbdd1），四项业务 Secrets 保留。准备提交收尾记录、PR 转待 review 并按要求关闭 Issue，不合并、不提前开启旧定时。
@@ -95,6 +97,7 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794576054] Issue #7 功能工作已结束，收尾文档提交继续由现有远端 CI 检查；暂无正在执行的生产变更。
 - [1794575849] 首轮实现 996d60c 的远端 push CI 43431946530 全通过：Python 57、Worker 8、Worker 打包、Docker 浏览器；PR #8 可正常合并但继续留待用户 review。补充“本次歌单”列与真实 D1 自动生成清单，等待最终分支远端 CI；不触发真实发送。
 
 - [1794575807] PR #8 已创建，保留待 review，不合并。首轮远端 Python 和 Docker 浏览器步骤通过；静态复查补充“本次歌单”列与移出歌单回归，避免旧未发送记录误导本轮完成状态；已从真实 D1 重新只读生成清单，准备推送收尾改动。未进行本地编译或测试。

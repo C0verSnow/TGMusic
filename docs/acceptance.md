@@ -170,4 +170,6 @@ Actions 目录现在有 11 项必需配置，Worker 目录有 4 项。新令牌�
 - 真实 HTTP 夹具调用正式 requests 发布代码：首次创建、运行分支、已有 SHA 更新、内容不变不提交、403/409 不强推、缺 Token/tag 拒绝。
 - Worker 指令回归：私聊/群组/Admin 的发送范围与结果回执聊天传入 Actions；“已请求”不冒充“同步完成”。
 
-首轮实现 `996d60c` 的 [push CI 43431946530](https://github.com/C0verSnow/TGMusic/actions/runs/43431946530) 已全部通过：Python 57 项、Worker 8 项、Worker 远端打包、预构建 Docker 浏览器。后续补充本次歌单列与移出歌单回归，最终分支 CI 继续执行。没有执行本地测试、构建、编译或冒烟脚本。本轮没有部署 feature Worker、没有触发真实补发或修改生产发送记录；PR 合并后正式 /sync 才会执行新逻辑。
+首轮实现 `996d60c` 的 [push CI 43431946530](https://github.com/C0verSnow/TGMusic/actions/runs/43431946530) 已全部通过：Python 57 项、Worker 8 项、Worker 远端打包、预构建 Docker 浏览器。最终实现 `c5070ad` 的 [push CI 43432415608](https://github.com/C0verSnow/TGMusic/actions/runs/43432415608) 和 [PR CI 43432426945](https://github.com/C0verSnow/TGMusic/actions/runs/43432426945) 均通过：Python **58 项**、Worker **8 项**及 Worker 远端打包，push 另通过 Docker 浏览器任务。清单包含本次歌单列，验证移出歌单的旧未发送记录不会阻止本轮完成。没有执行本地测试、构建、编译或冒烟脚本。本轮没有部署 feature Worker、没有触发真实补发或修改生产发送记录；PR 合并后正式 /sync 才会执行新逻辑。
+
+Issue #7 已按用户要求关闭；[PR #8](https://github.com/C0verSnow/TGMusic/pull/8) 保持待 review，未合并。收尾文档提交仍由现有 CI 检查。初版 docs/latest.md 是真实 D1 只读导出，不是本轮真实补发验收；首次真实补发与 Worker 更新在 review 合并后执行。
