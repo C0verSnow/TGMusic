@@ -4,6 +4,12 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794554016] Issue #3 已完成并按用户要求关闭；PR #4 已转为待 review，未合并。真实 Runner 43382782005 自动登录、读取 91 首并建基线；下一台 43383234383 直接 VALID、91 首已处理、0 新增/发送/失败/待核对。D1 读回基线与预计条数均为 91，租约已释放；TGMUSIC_ENABLED=false。
+- [1794554016] 实现提交 2e4b71f 的 push CI 43383233679、PR CI 43383240442 全通过：Python 38 项、Worker 7 项、Worker 打包与 push Docker 浏览器。已更新 README、设计参考、验收表和历史状态说明；GitHub 已检索相关项目与官方源码，没有复制来源不明代码、没有新增依赖。
+- [1794554016] 本地测试仅在用户本轮明确授权后使用固定预构建 Docker；未构建镜像或本地编译。完整 ini/User Data 的原归档实现符合用户确认，修复点是 HTTP 探测、Cookie 选择页和正常 Sign in 跳转。临时 DEBUG 代码与第二个重放容器、明文目录已清理，3002 桌面保留供用户继续查看。
+- [1794553524] 用户授权的本地 Docker 隔离重放已通过：正式 BrowserSession 从原云端加密档案恢复，自动拒绝可选 Cookie、继续正常 Sign in，得到 VALID，正式读取器返回指定歌单 91 首。原目录和 ini 保存完整，未改归档格式，未写入云端登录档案。已清除临时 DEBUG-issue3 代码，准备远端新 Runner 复验。
+- [1794551222] 远端回归 CI 43378596021 已准确复现：37 项中仅 HTTP 200 直连测试失败，异常为缺少 Mihomo 配置，与真实 Runner 一致。已修正 Network.reachable 仅判断 HTTP 200，页面和登录交给真实浏览器；缺代理提示也改为客观描述。准备远端复验，不使用本地构建或测试。
+- [1794550758] Issue #3 首次远端 CI 43377571761 已通过：Python 35 项、Worker 7 项、Docker 浏览器及 Worker 打包。真实 Runner bootstrap 43377633951 已成功；读回确认 D1 与 R2 安装标识一致，未启动定时。已提交正常 sync 进行真实档案恢复和收藏基线验收。
 - [1794549897] 配置提交 3eb9fa4 的 PR CI 43375794236 已通过；push CI 43375787609 的 Docker 任务因拉镜像限流首次失败，只重跑失败任务后第二次全部通过。未修改应用逻辑或镜像配置。另用 Wrangler 确认 R2 无 sync/installation.json，D1/R2 尚未初始化。
 - [1794549664] 已核对 GitHub 官方 workflow_dispatch 规则与 Infisical Secret Sync 文档；本轮未实现陌生功能，未新增同类开源项目检索，沿用 docs/design.md 已记录项目。差异检查通过；宿主 Python 缺 tomllib，未安装新工具，TOML 配置交给现有远端 CI 解析。未进行本地编译验证。
 - [1794549631] 两项业务令牌已补齐：Actions 现有 11 项必需配置、Worker 4 项；机器身份成功读回。新 GitHub Token 可读取 TGMusic 仓库与 Actions 工作流列表，尚未真实触发。TGMUSIC_ENABLED=false 已回读。main 目前只有文档，Actions 仅注册 CI；sync.yml 需要进入默认分支才能首次手动触发，未擅自合并 PR。
@@ -65,6 +71,7 @@
 - [1794533810] 用户最新要求优先使用对应 CLI，实在不行再用浏览器。已用 Wrangler 确认 tgmusic-private 存在，并查看远端对象 put/get 命令。当前 Docker 上传仍使用 boto3，需要改成优先 Wrangler 的方案；这一步尚未实现。浏览器仅导航至 R2 凭证页面，未提交创建任何 R2 长期凭证。
 
 ## 没做：
+- [1794554016] 本轮未验证真实新增歌曲发送、音频播放、群组或 Worker 上线；这些不冒充新 Runner 验收结果。定时仍关闭；myenv/config.yaml 未修改，未保存或启用 Mihomo。没有本地编译。
 - [1794549631] 尚未显式初始化 D1/R2、在新 Runner 恢复真实登录或完成 Worker 部署、Secret Sync、Webhook 与真实音频/群组联调。两个业务 Token 已配置，旧的“缺 Token”记录仅代表当时情况。定时同步仍关闭。
 - [1794537231] 尚未补齐 Actions 的 D1 API Token 和 Worker 的 GitHub 触发 Token，尚未完成新 Runner/Worker 真实联调；TGMUSIC_ENABLED=false。GitHub Secret 仅能核对元数据，不能读回明文。本轮未进行本地构建、编译、测试或冒烟验证。
 - [1794474792] 遵守仓库约定，没有进行本地构建、编译、测试或冒烟脚本验证。
@@ -78,6 +85,19 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794554016] Issue #3 实现与真实 Runner 验收已经完成，PR #4 等用户 review，不自行合并；最后文档和日志提交继续由现有远端 CI 检查。
+- [1794553298] LM 实际读取为 0 首，用户指定 PLc_u7T_eRp6c 由正式读取器读到 91 首；网页提示另隐藏 40 个不可用视频。已用现有个人 Infisical CLI 保存目标歌单（机器身份无写权限，未扩权）。已实现恢复 Google 会话后的普通 YouTube Sign in 跳转；新浏览器 HTTP 回归验证正常会话恢复、密码表单留给用户，待远端 CI。
+- [1794552848] 用户提出账号中没有 Playlist，指定若无歌单就用 YouTube playlist PLc_u7T_eRp6c；先核对链接可用性和当前 LM 收藏，不直接写入尚未确认的目标。继续保留定时关闭，真实发送尚未执行。
+- [1794552739] 本地预构建 Docker 恢复已复现 EXPIRED，实际目录确为 /config/.config/chromium/Default；加密副本 MD5 与当前 R2 ETag 一致，并通过正式恢复和元数据完整性校验。用户只点 Sign in 就进入账号，证明 Google 会话仍可用，原先“Google 会话失效”的解释不准确。正在核对正常登录跳转，修正脚本误判，原档案未改。
+- [1794552199] 用户明确允许本地 Docker 测试，一起排查真实登录问题；仅对本次预构建镜像隔离恢复测试适用，不进行本地镜像构建或编译。用户确认只需完整 Chromium User Data，现有归档范围符合预期。已移除全部临时远端 DEBUG-issue3 探针，改用本地可见桌面直接观察，保留云端原档案。
+- [1794551740] 真实诊断 43379268024：归档有 31 条 Google/YouTube v10 Cookie，Runner 已加载 6 个关键认证 Cookie；浏览器从 Chrome 156 升至 157，当前 music.youtube.com 配置已就绪但 LOGGED_IN=false。不是网络不可达，也不是 Cookie 全丢。再用一次远端等待/刷新探针排除首次打开的短暂登录跳转，原档案始终保留。
+- [1794551466] 修复后 push CI 43378791645 通过，真实 Runner 43378795484 确认可以直连，但真实浏览器报 EXPIRED，尚未建立基线，R2 原档案未覆盖。正在用临时 DEBUG-issue3 日志区分：Cookie 未加载、Google 拒绝新环境、跳转到登录页面；只输出计数/加密格式前缀/主机名和版本，不输出 Cookie 值。无需 Mihomo，不写入代理配置。
+- [1794551115] 新远端日志已确认 HTTP 200，但缺 INNERTUBE_CONTEXT；现有 Network.reachable 将页面内容检查当成网络检查，是触发缺代理报错的具体原因。用户要求网络正常就不用 Mihomo。已只读解析用户指定 myenv/config.yaml，原文件未改、未上传；先新增 HTTP 200 直连回归测试，在远端验证失败后再改判断，浏览器登录与 API 检查仍用原流程。
+- [1794550857] 真实 sync 43377824326 在 Network.start 的直连检查失败，提示缺少 MIHOMO_CONFIG_YAML，尚未打开浏览器。现有远端工作流即反馈入口；按用户禁止本地测试要求，不本地复现。优先区分 HTTP 拒绝、200 但页面不含配置、请求层异常三种原因，补充仅状态码/异常类型的日志；已询问用户可用美国代理配置的位置。
+- [1794550657] 首次提交 1a54493 已推送，远端 CI 43377571761 正在执行；现有 Worker 触发令牌成功将 bootstrap 手动任务提交至 GitHub（HTTP 204），目标为本次 feature 分支。初始化前已确认空安装，定时始终关闭。
+- [1794550591] 真实预检查已确认 D1 三类数据均为空、R2 无安装标识、定时开关为 false。新增正式 bootstrap 的 SQLite 回归测试，远端执行；GitHub 已检索 Infisical CLI / Secrets Action，比较后不引入新依赖，记录到设计文档。
+- [1794550488] 已为手动任务增加 sync/bootstrap 选项，启用开关仅控制定时；从本仓库 .env 登录 Infisical，读取现有两组配置用于真实远端验收，不输出密钥。沿用现有 CLI 与正式初始化逻辑，不新增部署工具。
+- [1794550375] 开始处理 Issue #3：已读取 issue 和全部任务记录；PR #2 已合并，基于最新 origin/main 建立 feature/issue-3-runner-integration。先核对真实 Runner 初始化与手动验收入口，定时同步保持关闭，不进行本地构建、编译或测试。
 - [1794549897] 本轮令牌补齐和配置记录已完成，等待用户 review PR #2；真实 Runner 首次启动需要同步工作流进入默认分支。未合并 PR、未关闭 Issue、未部署 Worker或开启定时；本轮没有本地构建、编译、测试或冒烟验证。
 - [1794549788] 远端日志定位到 Docker 拉镜像返回 toomanyrequests，容器还未启动；Python、Worker 测试及打包已通过。现有 CI 本身就是反馈入口；失败来自镜像仓库限流，跳过本地复现、假设枚举和回归代码，只重跑失败任务，不扩大实现。
 - [1794549771] 3eb9fa4 已推送；push CI 43375787609 报失败，PR CI 仍在运行。正在读取远端失败任务日志，按 diagnosing-bugs 流程定位，不进行本地复现或编译验证。

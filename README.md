@@ -1,6 +1,6 @@
 # TGMusic
 
-把一个 YouTube Music 账号新收藏的歌发到 Telegram 私聊或已授权群组。GitHub Actions 负责浏览器和音频处理，Cloudflare D1 保存发送状态，私有 R2 保存加密登录档案，Cloudflare Worker 接收指令，Infisical Cloud 管理密钥。
+把一个 YouTube Music 账号的收藏或指定歌单中的新增歌曲发到 Telegram 私聊或已授权群组。GitHub Actions 负责浏览器和音频处理，Cloudflare D1 保存发送状态，私有 R2 保存加密登录档案，Cloudflare Worker 接收指令，Infisical Cloud 管理密钥。
 
 默认首次只建立基线，不发送旧收藏；以后每个新目标也单独建基线。目标默认优先音频，但只有 `AUDIO_AUTHORIZED_VIDEO_IDS` 明确列出的、允许下载和重新分发的歌曲才会尝试获取文件，其余发送原链接。链接和音频在历史中分别记录。
 
@@ -104,11 +104,18 @@ Repository Secrets 只保存：
 - `INFISICAL_CLIENT_ID`
 - `INFISICAL_CLIENT_SECRET`
 
-同步工作流须先进入默认分支，才能首次从 Actions 页面或 Worker 手动触发；只在功能分支存在还不够，见 [GitHub 官方触发规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。当前 PR 等待 review 时保持定时关闭。
+同步工作流须先进入默认分支，才能首次从 Actions 页面或 Worker 手动触发；只在功能分支存在还不够，见 [GitHub 官方触发规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。PR #2 已合并，手动触发入口已具备；验收期间保持定时关闭。
 
-Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 `/tgmusic/github-actions`、API 地址；完成初始化后才设 `TGMUSIC_ENABLED=true`。其他运行参数放 Infisical。手动执行 **YouTube Music Sync** 验收恢复、登录、列表及基线；下次新增一首歌验证发送。
+Repository Variables 设置 Example Project 的项目 ID、环境 prod、路径 `/tgmusic/github-actions`、API 地址。其他运行参数放 Infisical。`TGMUSIC_ENABLED` 只控制定时任务；手动任务可在它为 `false` 时运行，Worker 发起的手动任务也一样。
 
-cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时任务跳过，防止配置未齐就自动运行。
+在 Actions 的 **YouTube Music Sync → Run workflow** 选择要验收的分支：
+
+1. 首次安装且已核对 D1/R2 都没有安装标识或历史时，选择 `operation=bootstrap`，`target_chat_ids` 留空。它只调用现有显式初始化命令，不启动浏览器或发送收藏；已有或残缺的安装会报错，不能反复初始化来修复失败。
+2. 选择 `operation=sync`，验收 Infisical 注入、R2 档案恢复、Google 登录、完整收藏分页和默认基线。此时定时仍可保持关闭。
+3. 再在新 Runner 执行一次 `sync`，确认历史和登录档案可恢复、旧收藏没有重复发送。新增一首收藏后，再验证新增发送与再次运行不重复。
+4. 完成部署验收后才设 `TGMUSIC_ENABLED=true`。手动 `sync` 使用正式发送流程；已初始化的目标出现新增时会实际发送，不是只读检查。
+
+cron 每 5 分钟唤醒一次，实际是否同步由 D1 `last_success` 和 `SYNC_INTERVAL_MINUTES` 决定，默认 60 分钟；手动 `/sync` 不等待间隔。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
 
 工作流固定 Python 3.12、DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6。二进制安装脚本核对仓库内固定的 SHA-256。Actions 只给 `contents: read`，30 分钟超时，同一并发组不取消正在进行的任务。
 
@@ -197,5 +204,9 @@ python src/infisical_boot.py src/manage.py rotate-profile-key
 ## 测试与当前交付边界
 
 本仓库禁止本地构建、编译及会触发编译的测试。提交后由 [CI](.github/workflows/ci.yml) 在 GitHub 执行 Python unittest、Node 内置测试和 Worker 远端打包检查。测试用真实 SQLite 执行正式迁移和 SQL；Telegram 重试使用 CI 内的 HTTP 测试服务；云存储/发送边界使用小型替身，不复制去重业务逻辑。
+
+`YOUTUBE_PLAYLIST_ID` 放在 Infisical 的 github-actions 目录，默认 `LM` 表示“喜欢的音乐”；也可填写指定 YouTube 歌单的 ID（不是完整 URL）。首次建立基线前选好目标；不可用的视频按列表接口返回情况跳过。
+
+恢复档案后，浏览器遇到 YouTube Cookie 选择页会拒绝可选 Cookie；若 Google 会话可用但 YouTube 尚未登录，会继续页面上的普通 Sign in 跳转，最多等待 20 秒。脚本不会填写密码、验证码或二次验证。仍无法登录时停止并保留旧档案；出现未识别的 Cookie 选择页也会停止，交由人工查看。
 
 自动测试不等于真实账号验收。Google 登录恢复、Runner 出口、Cloudflare 凭证、Infisical 路径隔离、Telegram 实际文件播放和 Worker 真实触发，需要按 [验收清单](docs/acceptance.md) 在部署环境执行并记录。P2 的多账号、每群独立播放列表和监控面板不在本期。

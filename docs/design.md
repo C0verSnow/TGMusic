@@ -74,3 +74,22 @@ D1 租约与 Actions concurrency 防止同一安装重叠执行；租约 35 分�
 - Xvfb 无法替人处理 Google 验证码。
 - 确认有下载和再分发授权后才将 videoId 加入授权清单；默认偏好音频与实际发出音频是两件事。
 - 仓库为空，没有原有 CI；本次为交付要求增加远端测试工作流，未引入本地编译验证流程。
+
+
+## Issue #3：新 Runner 手动联调入口
+
+PR #2 合并后，`sync.yml` 已注册在默认分支。原来的 job 开关同时挡住手动和定时任务，导致必须先开启定时才能验收。现在 `TGMUSIC_ENABLED` 只控制定时任务，显式 `workflow_dispatch` 可以运行；Worker 的 `/sync` 同属手动触发。手动输入 `operation` 默认 `sync`，只有选择 `bootstrap` 才调用现有管理命令初始化空安装，不将初始化混入正常同步。两种操作共用原来的 Actions concurrency。
+
+本轮在 GitHub 检索了 [Infisical CLI](https://github.com/Infisical/cli) 和 [Infisical Secrets Action](https://github.com/Infisical/secrets-action)，比较现有 CLI 子进程注入与额外引入 JavaScript Action 的实现。2026-11-13 核对时，CLI 101 星、当天有提交，许可证明确区分普通代码的 MIT Expat 与 ee/ 的单独条款；Secrets Action 82 星、MIT、最近提交为 2026-09-14，近期关闭的问题包括 #40 的 project-id 支持。两者均不是高星的新候选，不引入任何新组件。本项目继续使用已锁定、已在 CI 验证的 CLI 0.45.6 与现有 `infisical_boot.py`，不复制其代码。
+
+工作流条件和输入采用 [GitHub 官方手动触发文档](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow) 的事件与输入上下文；不依赖额外分发服务或第三方 Action。真实初始化前先只读核对 D1 installation/targets/history 均为 0，且 R2 没有安装标识。初始化后不能通过重跑 bootstrap 清空或修复生产状态。
+
+
+新 Runner 暴露的网络误判：匿名 Python 请求拿到 HTTP 200，但响应不包含 `INNERTUBE_CONTEXT`，旧版把它判为网络不通，立即要求未配置的 Mihomo。网络探测现在只判断 HTTP 成功；应用和登录状态仍由恢复档案后的真实浏览器与收藏 API 判断，UNKNOWN / 收藏读取失败仍按原流程尝试备用代理。只记录失败 HTTP 状态或异常类型，不记录网页和凭证，也不再把缺代理配置描述成已证实被封锁。用户明确要求直连正常时不启用 Mihomo。
+
+
+本地 Docker 实测进一步定位到正常页面流程缺失：原档案完整恢复后，Google Cookie 仍可使用，但 YouTube 需要点一次 Sign in 才会完成 `ServiceLogin → CheckCookie → SetSID` 跳转。用户亲自只点击 Sign in 后即恢复 VALID，不能据此宣称 Google 会话已经失效。本次在页面检测前处理已实际遇到的 `consent.youtube.com`，拒绝可选 Cookie 后返回 Music；Music 显示未登录时沿页面现有 Sign in 链接继续正常跳转。遇到密码/验证码仍停止，不自行填写或绕过验证。
+
+依照 [DrissionPage 4.1.1.4 等待文档](https://www.drissionpage.cn/browser_control/waiting/)等待实际导航和文档加载；不自行实现 OAuth 或 Cookie 解密。另读取固定镜像 revision [LinuxServer Chromium 启动脚本](https://github.com/linuxserver/docker-chromium/blob/c4bbd54b9bb6a505f0decb422214c39dfdae7650/root/usr/bin/wrapped-chromium)，并在实际浏览器 `chrome://version` 核对目录为 `/config/.config/chromium/Default`，与归档根一致。用户明确选择仅保留完整 Chromium User Data，未扩展到整个容器 HOME，也无需新增归档格式。
+
+用户提供的 `PLc_u7T_eRp6c` 已由正式读取器读取 91 首，原 LM 为 0；按用户要求将 TGMusic Infisical 的 `YOUTUBE_PLAYLIST_ID` 设置为此 ID。网页提示隐藏 40 个不可用视频；不把这些视频伪造为可下载或可发送项目。归档和账号密钥不写入 Git。
