@@ -92,8 +92,8 @@ class AudioDownloadTests(unittest.TestCase):
         self.assertTrue(all(cookie == 'fixture=yes' and user_agent == 'TGMusic-Audio-Test'
                             for _, cookie, user_agent in self.requests))
 
-    def test_playlist_wildcard_downloads_songs_beyond_old_sample(self):
-        self.config.audio_authorized_video_ids = {'*'}
+    def test_legacy_sample_list_does_not_block_other_playlist_songs(self):
+        self.config.audio_authorized_video_ids = {'oldsample01'}
         with tempfile.TemporaryDirectory() as directory:
             result = self.resolver.resolve(self.song(), directory)
             self.assertIsNotNone(result)

@@ -227,6 +227,7 @@ class SyncTests(unittest.TestCase):
         for song in self.songs[:2]:
             self.r2.put(receipt_key(123, song.video_id), json.dumps(
                 {'mode': 'link', 'message_id': 99, 'sent_at': 'old'}).encode(), create=True)
+        self.assertIn('待补音频', self.history.export(self.songs[:2], [123]).decode())
         self.resolver = SimpleNamespace(resolve=lambda *args: Path('fixture.mp3'))
         parent = self.sender
         class AudioSender:

@@ -1,11 +1,8 @@
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 sys.path.insert(0, str(Path('src').resolve()))
-from models import Song
 from youtube_client import parse_song, playlist_page, CollectionError, YouTubeClient
-from audio_resolver import AudioResolver
 
 
 def row(video_id, title='Song'):
@@ -45,8 +42,3 @@ class YouTubeTests(unittest.TestCase):
                                         'continuations': [{'nextContinuationData': {'continuation': 'loop'}}]}}}
         with self.assertRaises(CollectionError):
             client.innertube_songs('LM')
-
-    def test_audio_requires_explicit_permission(self):
-        config = SimpleNamespace(audio_authorized_video_ids=frozenset())
-        resolver = AudioResolver(None, None, config)
-        self.assertIsNone(resolver.resolve(Song('abcdefghijk','a','b'), '/tmp'))
