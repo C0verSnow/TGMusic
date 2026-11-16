@@ -28,11 +28,17 @@ function fixture({ memberStatus = 'administrator', dispatchStatus = 204 } = {}) 
   const env = { TELEGRAM_WEBHOOK_SECRET: 'secret', TELEGRAM_BOT_TOKEN: 'fake-token',
     TELEGRAM_BOT_USERNAME: 'C0verSnow_TGMusic_bot', GITHUB_REPOSITORY: 'owner/repo', GITHUB_REF: 'main',
     GITHUB_WORKFLOW_TRIGGER_TOKEN: 'fake-trigger',
-    DB: { prepare(sql) { return { bind(...params) { return {
-      async first() { return query(sql, params)[0] || null; },
-      async all() { return { results: query(sql, params) }; },
-      async run() { return { results: query(sql, params) }; },
-    }; } }; } },
+    DB: { prepare(sql) {
+      function statement(params) {
+        return {
+          bind(...values) { return statement(values); },
+          async first() { return query(sql, params)[0] || null; },
+          async all() { return { results: query(sql, params) }; },
+          async run() { return { results: query(sql, params) }; },
+        };
+      }
+      return statement([]);
+    } },
     PROFILES: { async head() { return {}; } },
   };
   const calls = [];

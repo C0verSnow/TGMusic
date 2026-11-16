@@ -175,7 +175,7 @@ async function configureSchedule({ args, chatId }, env) {
       return;
     }
     if (value === 'off') {
-      await env.DB.prepare('UPDATE sync_schedule SET enabled=0 WHERE id=1').bind().run();
+      await env.DB.prepare('UPDATE sync_schedule SET enabled=0 WHERE id=1').run();
     } else if (value === 'on') {
       await env.DB.prepare('UPDATE sync_schedule SET enabled=1,next_run=? + interval_hours * 3600 WHERE id=1')
         .bind(now()).run();
@@ -189,7 +189,7 @@ async function configureSchedule({ args, chatId }, env) {
 }
 
 async function scheduleStatus(env) {
-  const state = await env.DB.prepare('SELECT * FROM sync_schedule WHERE id=1').bind().first();
+  const state = await env.DB.prepare('SELECT * FROM sync_schedule WHERE id=1').first();
   const last = state.last_dispatch ? new Date(state.last_dispatch * 1000).toISOString() : '暂无';
   const next = !state.enabled ? '已暂停' : state.next_run ? new Date(state.next_run * 1000).toISOString() : '下次检查';
   return `自动同步：${state.enabled ? '启用' : '暂停'}，每 ${state.interval_hours} 小时\n上次自动请求：${last}\n下次到期：${next}\n每 5 分钟检查一次；请求后由 Actions 排队执行。`;
