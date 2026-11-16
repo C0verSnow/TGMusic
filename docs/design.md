@@ -174,3 +174,23 @@ Worker 是无外部 import 的原生 ES module，可用 `wrangler deploy --no-bu
 > Use case: logo-brand. Asset type: square Telegram bot profile avatar for TGMusic, a personal music playlist sharing bot. Primary request: an original minimalist music app icon: a crisp white pair of joined eighth notes, with a subtle paper-plane-shaped notch in the connecting beam. Backdrop: rich coral red to magenta gradient, flat full-bleed square background. Style: polished, simple app icon with clean edges and high contrast, readable at 48px. Composition: one large centered mark with generous safe margin for Telegram circular cropping. No letters, no text, no watermark, no Apple logo or existing brand logo. Output square PNG.
 
 PNG 保存在 assets/bot-avatar.png，JPG 是同一图片的格式转换，供 Telegram 上传，不手工重绘。
+
+
+## Issue #14：可通过 Telegram 管理的自动同步
+
+2026-11-15 检查真实 Actions：`TGMUSIC_ENABLED=true`、`sync.yml` 为 active。schedule 43685415128 已读取 93 首、发送 13 首，但有 7 项音频失败，随后 Telegram 通知回执不确定；schedule 43647686836 有 10 项音频失败；schedule 43748868273 成功。因此不能将失败归因于“定时从来没触发”，也不改变现有音频失败与待核对处理。
+
+调度复用已有 Worker、D1 与 GitHub workflow_dispatch：`*/5 * * * *` 检查 `sync_schedule`，默认 6 小时，范围 1–168 整数小时。Owner `/autosync [小时|on|off]` 管理全局开关和周期；修改或恢复从当前时间重新计时。只有 GitHub 返回 204 后才记录 `last_dispatch` 和下次到期，拒绝的请求留待下轮；下载或发送失败不等于调度失败。`last_dispatch` 和 installation.last_success 分别展示，手动同步和续跑不移动自动到期时间。已有 lease、没有启用目标或未 bootstrap 时跳过，本轮不修改 D1 的到期时间。
+
+删除 GitHub 固定六小时 cron，避免两套调度共存；迁移先新增调度表，再部署原生 Worker，不改现有历史表或 Runner 业务。所有触发继续使用原 concurrency 和 History 租约。升级需在同一次维护完成合并、迁移和 Worker 部署；PR 等用户 review 时不提前迁移或部署。迁移/回退步骤见 README。
+
+`/targetlist` 是原 `/targets` 的别名，沿用白名单、Admin 目标范围、限频、审计，显示暂停但未移除的目标。`/id` 属于公开只读指令，只返回经过 parseUpdate 验证的当前 chat.id；未授权新群也能使用，不读取其他聊天、不授予任何权限。继续支持私聊/群/超级群与 @Bot 命令，不扩展频道帖子处理。
+
+本轮 GitHub 检索和比较：
+
+| 项目 | 维护、许可 | 实现与取舍 |
+|---|---|---|
+| [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) | 29,594 星，GPL-3.0，2026-11-11 提交，#5398 有回复并关闭 | Python asyncio；[CommandHandler](https://github.com/python-telegram-bot/python-telegram-bot/blob/master/src/telegram/ext/_handlers/commandhandler.py) 按命令与 Bot 用户名匹配。参考其参数与上下文设计，不引入 Python Bot 运行时 |
+| [Telegraf](https://github.com/telegraf/telegraf) | 9,208 星，MIT，2026-09-24 提交，#2095 有回复并关闭 | Node/TypeScript；[Context](https://github.com/telegraf/telegraf/blob/v4/src/context.ts) 从当前消息获取 chat。参考当前聊天 ID 的作用域，不引入框架。两个项目都不能替代 Telegram 隐私模式、管理员权限或外部调度 |
+
+调度依据 [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) 与 [scheduled handler](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)：scheduledTime 是毫秒，D1 存 Unix 秒；配置传播最多约 15 分钟。继续原生 fetch，不新增依赖，不复制候选源码。回归用现有 Node 测试入口、正式迁移和真实 SQLite，外部 Telegram/GitHub 保留现有 fetch 替身；所有执行在现有远端 CI。本地只做语法、阅读及差异检查。

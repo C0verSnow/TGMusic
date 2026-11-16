@@ -106,18 +106,20 @@ Wrangler CLI 优先用于云资源管理。核对过的 Wrangler 4.160.1 对象�
 
 Repository Secrets 只保存本仓库的 `INFISICAL_SECRET_PATH`。共用机器身份放在 Organization Secrets。
 
-同步工作流须先进入默认分支，才能首次从 Actions 页面或 Worker 手动触发；只在功能分支存在还不够，见 [GitHub 官方触发规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。PR #2 已合并，手动触发入口已具备；验收期间保持定时关闭。
+同步工作流须先进入默认分支，才能首次从 Actions 页面或 Worker 手动触发；只在功能分支存在还不够，见 [GitHub 官方触发规则](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。PR #2 已合并，手动触发入口已具备。
 
-Organization Secrets 保存共用的 `INFISICAL_CLIENT_ID` 和 `INFISICAL_CLIENT_SECRET`；Repository Secret `INFISICAL_SECRET_PATH` 设置为 `/tgmusic/github-actions`。Organization Variables 保存 Example Project 的项目 ID、环境 dev 和 API 地址。其他运行参数放 Infisical。`TGMUSIC_ENABLED` 只控制定时任务；手动任务可在它为 `false` 时运行，Worker 发起的手动任务也一样。
+Organization Secrets 保存共用的 `INFISICAL_CLIENT_ID` 和 `INFISICAL_CLIENT_SECRET`；Repository Secret `INFISICAL_SECRET_PATH` 设置为 `/tgmusic/github-actions`。Organization Variables 保存 Example Project 的项目 ID、环境 dev 和 API 地址。其他运行参数放 Infisical。自动同步开关与周期由 D1 和 `/autosync` 管理；旧的 `TGMUSIC_ENABLED` 不再控制新调度，可在完成迁移后移除。
 
 在 Actions 的 **YouTube Music Sync → Run workflow** 选择要验收的分支：
 
 1. 首次安装且已核对 D1/R2 都没有安装标识或历史时，选择 `operation=bootstrap`，`target_chat_ids` 留空。它只调用现有显式初始化命令，不启动浏览器或发送收藏；已有或残缺的安装会报错，不能反复初始化来修复失败。
-2. 选择 `operation=sync`，验收 Infisical 注入、R2 档案恢复、Google 登录、完整收藏分页和按聊天补发。此时定时仍可保持关闭。
+2. 选择 `operation=sync`，验收 Infisical 注入、R2 档案恢复、Google 登录、完整收藏分页和按聊天补发。部署 Worker 前不会启动新调度；若 Worker 已部署，先用 `/autosync off` 暂停。
 3. 再在新 Runner 执行一次 `sync`，确认历史和登录档案可恢复、成功发送的歌曲没有重复发送。新增一首收藏后，再验证新增发送与再次运行不重复。
-4. 完成部署验收后才设 `TGMUSIC_ENABLED=true`。手动 `sync` 使用正式发送流程；已初始化的目标出现新增时会实际发送，不是只读检查。
+4. 完成部署验收后用 `/autosync on` 开启自动同步。手动 `sync` 使用正式发送流程；已初始化的目标出现新增时会实际发送，不是只读检查。
 
-cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram `/sync` 或 Actions 手动运行会立即请求额外的一次同步，不改变固定定时时刻。GitHub cron 使用 UTC，夏令时只会改变当地显示时间。旧的 `SYNC_INTERVAL_MINUTES` 不再使用，可从 Infisical 移除；调度以 `.github/workflows/sync.yml` 为准。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。局部同步不推迟其他目标的定时任务。GitHub 定时可能延迟，不保证精确时间。未设置 `TGMUSIC_ENABLED=true` 时定时任务跳过，防止配置未齐就自动运行。
+自动同步由同一个 Cloudflare Worker 的 Cron Trigger 每 5 分钟检查 D1，到期后请求现有 `sync.yml`；默认每 6 小时，Owner 可通过 `/autosync 3`、`/autosync 12` 调整，支持 1–168 的整数小时。设置间隔或 `/autosync on` 后，从当前时间重新计时；首次部署在下一次检查时请求同步。设置持久保存在 D1，重启和重新部署不会重置。`/autosync off` 暂停自动发起新任务，不取消已排队、正在执行的任务或其自动续跑；手动 `/sync` 始终可用，不推迟下一次自动同步。`/autosync` 查看开关、周期、上次自动请求及下次到期时间；`/status` 还显示上次完整同步成功时间。时间以 UTC 展示，检查和 Actions 排队可能延迟，不承诺准点。
+
+调度请求被 GitHub 拒绝时不推进到期时间，下次检查继续请求；GitHub 接受任务后记录请求时间，实际下载或发送失败仍由 Runner 报告给 Owner。定时触发不等于歌曲全部发送成功，不自动重发回执不明的歌曲。未初始化、没有启用目标或已有同步持有租约时不请求新任务；到期时间保留，之后的检查仍会尝试。Admin 在私聊只触发其授权目标，在群组只触发当前群组；Owner 在私聊可触发全部目标。
 
 工作流使用 Python 3.12、Node 22；锁定 DrissionPage 4.1.1.4、Mihomo 1.19.34、Infisical CLI 0.45.6、yt-dlp 2026.10.26 和 yt-dlp-ejs 0.8.0。二进制安装脚本核对仓库内固定的 SHA-256。同步 job 使用短期 `GITHUB_TOKEN` 的 `contents: write`，自动提交 `docs/latest.md` 到当前运行分支，并使用 `actions: write` 排队下一轮；CI 仍为 `contents: read`。同步任务每轮 30 分钟超时，发送阶段最多 20 分钟；同一并发组串行执行，`queue: max` 保留已排队的同步。
 
@@ -131,7 +133,9 @@ cron 每 6 小时运行一次（UTC 00:17、06:17、12:17、18:17）；Telegram 
 npx wrangler@4.45.0 deploy --no-bundle --config worker/wrangler.toml
 ```
 
-Worker 是原生 JavaScript，`--no-bundle` 直接上传源码，跳过本地构建。随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 dev `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
+已有安装升级时，先在 review 合并后应用 `0002_sync_schedule.sql`（使用上面的 `d1 migrations apply`），再按上述命令部署 Worker。迁移只新增调度表，默认启用、每 6 小时，不修改目标、角色或发送历史。此版本移除了 GitHub 原生六小时 cron，避免与新调度重复。合并但尚未部署 Worker 的间隙只支持手动同步，因此应在同一次维护中完成迁移和部署；不要同时保留旧 GitHub cron。Cloudflare Cron 配置传播可能需要最多 15 分钟，随后到期检查才生效，见 [官方 Cron 说明](https://developers.cloudflare.com/workers/configuration/cron-triggers/)。首次安装时也要应用全部迁移，完成 bootstrap、登录档案和目标配置后再部署 Worker。回退时先 `/autosync off`，撤掉 Worker Cron，再恢复旧版本和原 GitHub 定时开关。
+
+Worker 是原生 JavaScript，`--no-bundle` 直接上传源码，跳过本地构建。随后在 Infisical 为该 Worker 配置 Cloudflare Workers Secret Sync，从 dev `/tgmusic/cloudflare-worker` 同步四个敏感键。使用单独且最小权限的集成连接；不要在仓库写 Worker Secrets。`GITHUB_WORKFLOW_TRIGGER_TOKEN` 是只允许本仓库 Actions Write 的细粒度令牌，用于手动和定时触发 `sync.yml`，不能用工作流里只读的 `GITHUB_TOKEN` 替代。
 
 在可信配置环境注入 Telegram Token 和 Webhook Secret 后注册：
 
@@ -149,23 +153,25 @@ python src/infisical_boot.py src/manage.py set-webhook https://你的Worker域�
 
 1. 把正式 Bot 加到你要收音乐的群里，设为群管理员；你自己也必须是群主或管理员。
 2. 用白名单里的 Owner 账号在**那个群里**发 `/addtarget@C0verSnow_TGMusic_bot`，默认发送音频；只要链接则发 `/addtarget@C0verSnow_TGMusic_bot link`。
-3. 收到授权成功后等 10 秒，再在同一个群发 `/sync@C0verSnow_TGMusic_bot`。这次只向该群补发；以后该群也参加每六小时的定时同步。
+3. 收到授权成功后等 10 秒，再在同一个群发 `/sync@C0verSnow_TGMusic_bot`。这次只向该群补发；以后该群也参加自动同步（默认每六小时）。
 
 每个群单独授权，入群不会自动订阅。新增群不会替换或暂停原有目标；如果不想继续发到旧群或私聊，用 `/disable <旧chat_id>` 暂停。Owner 在私聊发 `/sync` 仍会同步所有启用目标。这里选择的是整个群，不支持指定群内话题。
 
 | 指令 | 用法 | 谁能用 |
 |---|---|---|
 | `/start` `/help` | 帮助 | 所有人 |
+| `/id` | 查询当前私聊、群或超级群的数字 chat_id，无须先授权目标 | 所有人 |
 | `/status` | 最近同步与目标状态 | Owner / Admin |
 | `/sync` | 核对并补发未发送歌曲，更新清单后回报结果 | Owner / Admin |
-| `/targets` | 查看目标；Admin 只看到授权范围 | Owner / Admin |
+| `/targets` `/targetlist` | 查看未移除目标 ID 和状态，包括暂停目标；Admin 只看到授权范围 | Owner / Admin |
+| `/autosync` | 查看自动同步；`/autosync 3` 改为每 3 小时，`off` 暂停，`on` 恢复 | Owner |
 | `/addtarget` | 群内 `/addtarget [audio|link]` 选当前群；也可 `/addtarget -1001234567890 audio` | Owner，且须为该群管理员 |
 | `/removetarget` | `/removetarget -1001234567890`；保留历史 | Owner |
 | `/enable` `/disable` | 当前目标，或指定数字 chat_id | Owner / 有该目标授权的 Admin，群组还需群管理员身份 |
 | `/authstatus` | 最近一次 Google 登录检查 | Owner |
 | `/health` | D1、R2 档案、任务状态 | Owner |
 
-Bot 入群不会自动订阅。Bot 需具备发送权限，并建议设为群管理员以可靠查询其他成员的管理员身份。系统 Admin 与 Telegram 群管理员是两个独立条件。授权名单保存在 D1，以数字 User ID 认证，不使用用户名认证。每个用户在同一聊天的管理命令间隔至少 10 秒；Webhook update_id 去重；管理请求写脱敏审计记录。
+Bot 入群不会自动订阅。Bot 需具备发送权限，并建议设为群管理员以可靠查询其他成员的管理员身份。系统 Admin 与 Telegram 群管理员是两个独立条件。授权名单保存在 D1，以数字 User ID 认证，不使用用户名认证。`/id` 只返回当前聊天 ID，不授权目标或读取其他聊天，也不支持频道帖子。群内建议使用 `/id@C0verSnow_TGMusic_bot`，防止隐私模式拦截。每个用户在同一聊天的管理命令间隔至少 10 秒；Webhook update_id 去重；管理请求写脱敏审计记录。
 
 管理员授权通过可信配置环境操作，不开放 Guest 自助提权：
 

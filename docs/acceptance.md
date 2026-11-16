@@ -215,3 +215,17 @@ Cloudflare 官方自动同步已切到 dev，2026-11-13T16:05:18.998Z 成功；W
 - 旧 Bot Webhook 地址为空；新 Bot Webhook 复用原地址，allowed_updates 为 message、积压 0、无错误。Owner 私聊已 /start，真实 /help 回复正常；正式 Bot 已加入原 Music 群并成为管理员。
 - 真实 Owner 在 Music 群发送 /addtarget@C0verSnow_TGMusic_bot，正式 Bot 回复“目标已授权：-1004447109031（audio）”，D1 审计 allowed；历史仍为 184 条，没有重新初始化。新群由用户按需要建立后照 README 授权。
 - 本次没有触发生产歌单批量补发，也没有开启原本关闭的定时开关。旧测试 Bot 保留账号，只有 Webhook 停用；没有删除聊天、歌曲记录、浏览器档案或其他 Bot 的凭据。
+
+
+## Issue #14：自动同步与查询指令
+
+- [x] 远端 CI：默认六小时到期检查、周期修改与持久化、暂停恢复、到期前不触发、失败下轮再试、持有租约/无目标/未初始化跳过，手动同步不改变自动到期时间。
+- [x] 远端 CI：`/id` 在未授权群与私聊可用；`/targetlist` 不泄露 Admin 未授权目标，不包含已移除目标；Guest 不能查看目标或修改周期。
+- [ ] review 合并后应用全部 D1 迁移，再部署 Worker 和 Cron；检查旧 GitHub schedule 已移除，Cloudflare Cron 传播后只有一套调度。
+- [ ] Owner 实际执行 `/autosync`、`/autosync 3`、`/autosync off`、`/autosync on`，确认下次到期与最近自动请求；管理命令之间等 10 秒。重启 Worker 后设置仍保留。
+- [ ] 实际群 `/id@C0verSnow_TGMusic_bot` 与 `/targetlist`，核对 ID、目标状态与 Admin 范围。
+- [ ] 到期后核对 Actions 的 workflow_dispatch 与 Worker last_dispatch，随后核对 Runner 结果及 last_success；不能把已请求当成已发完。
+
+本轮不在 review 前部署或向真实聊天发测试消息，线上验收以上线后的实际记录为准。
+
+修复提交 `e69673e` 的 [PR CI](https://github.com/C0verSnow/TGMusic/actions/runs/43795044852) 和 [push CI](https://github.com/C0verSnow/TGMusic/actions/runs/43795039313) 全通过：Python 76、Worker 20、Worker 打包，push 另含 Docker 浏览器。旧代码的 [复现 CI](https://github.com/C0verSnow/TGMusic/actions/runs/43794488688) 为 13 项通过、6 项新增回归失败；首次修复的状态查询仅因 SQLite 夹具缺少无参数接口失败，补齐后通过。PR #15 已转待 review，Issue #14 已按正文要求关闭；未合并、未部署，未做本地编译或测试。
