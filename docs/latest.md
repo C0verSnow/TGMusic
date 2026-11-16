@@ -5,7 +5,7 @@
 依据机器人发送成功记录与 Telegram 消息 ID 核对；不是完整聊天历史，也不检测消息被删除。
 音频目标只有 audio 算完成，旧 link 会补音频；旧 baseline 算未发送，待核对项目不会自动重发。
 
-清单生成时间（UTC）：2026-11-16T06:31:35+00:00
+清单生成时间（UTC）：2026-11-16T12:32:34+00:00
 
 ## 聊天 -1004447109031
 
@@ -157,6 +157,7 @@
 | OQjOfjBal3Y | 你不知道的事 - All The Things You Never Knew | Wang Leehom | 已发送 | audio | 67 | 2026-11-13T17:43:42+00:00 | 是 |
 | OQwnI4HWZLI | 說好不哭 | 周杰倫, 五月天 阿信 | 已发送 | audio | 87 | 2026-11-13T17:58:24+00:00 | 是 |
 | PlwzL4ly-Bc | 小孩 | 罗森涛 | 已发送 | audio | 61 | 2026-11-13T17:39:26+00:00 | 是 |
+| Px_TOP_d9zY | 髮如雪 | 周杰倫 | 已发送 | audio | 127 | 2026-11-16T12:32:32+00:00 | 是 |
 | QLCpqdqeoII | Die For You | The Weeknd | 已发送 | audio | 102 | 2026-11-13T18:10:24+00:00 | 是 |
 | QLxy9dYHrcg | The truth that you leave | Pianoboy高至豪 | 已发送 | audio | 50 | 2026-11-13T17:30:26+00:00 | 是 |
 | QMqizmScJfI | 龍捲風 | 周杰倫 | 已发送 | audio | 14 | 2026-11-13T17:02:13+00:00 | 是 |
