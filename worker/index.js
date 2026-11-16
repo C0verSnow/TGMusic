@@ -1,8 +1,20 @@
-const PUBLIC_HELP = '每 6 小时自动同步；/sync 可立即请求一次同步。\n/start /help\n白名单用户：/status /sync /targets /enable /disable\nOwner：在目标群发送 /addtarget [audio|link]，再发 /sync 就只同步该群。\n也可 /addtarget <chat_id> [audio|link]；/removetarget <chat_id> /authstatus /health。\n把 Bot 加入群并设为管理员；入群不会自动授权，授权后会按原定时同步。';
-const COMMANDS = new Set(['status', 'sync', 'targets', 'addtarget', 'removetarget', 'enable', 'disable', 'authstatus', 'health']);
-const OWNER_ONLY = new Set(['addtarget', 'removetarget', 'authstatus', 'health']);
+const PUBLIC_HELP = '默认每 6 小时自动同步；/sync 可立即请求一次同步。\n/start /help /id（当前聊天 ID）\n白名单用户：/status /sync /targets /targetlist /enable /disable\nOwner：/autosync 查看自动同步；/autosync <1–168 整数小时> 调整周期；off 暂停，on 恢复。\n在目标群发送 /addtarget [audio|link]，再发 /sync 就只同步该群。\n也可 /addtarget <chat_id> [audio|link]；/removetarget <chat_id> /authstatus /health。\n把 Bot 加入群并设为管理员；入群不会自动授权，授权后会参加自动同步。';
+const COMMANDS = new Set(['status', 'sync', 'targets', 'targetlist', 'autosync', 'addtarget', 'removetarget', 'enable', 'disable', 'authstatus', 'health']);
+const OWNER_ONLY = new Set(['autosync', 'addtarget', 'removetarget', 'authstatus', 'health']);
 
 export default {
+  async scheduled(controller, env) {
+    const timestamp = Math.floor(controller.scheduledTime / 1000);
+    const schedule = await env.DB.prepare('SELECT s.* FROM sync_schedule s JOIN installation i ON i.id=s.id '
+      + 'WHERE s.id=1 AND s.enabled=1 AND s.next_run<=? AND i.lease_until<=? '
+      + 'AND EXISTS(SELECT 1 FROM targets WHERE enabled=1 AND removed=0)')
+      .bind(timestamp, timestamp).first();
+    if (!schedule) return;
+    await dispatch(env);
+    await env.DB.prepare('UPDATE sync_schedule SET last_dispatch=?,next_run=? WHERE id=1')
+      .bind(timestamp, timestamp + schedule.interval_hours * 3600).run();
+    console.log('Automatic sync requested');
+  },
   async fetch(request, env, ctx) {
     if (new URL(request.url).pathname !== '/webhook' || request.method !== 'POST') {
       return new Response('Not found', { status: 404 });
@@ -42,6 +54,10 @@ async function processUpdate(input, env) {
   if (!claimed) return;
   if (input.command === 'help' || input.command === 'start') {
     await reply(env, input.chatId, PUBLIC_HELP);
+    return;
+  }
+  if (input.command === 'id') {
+    await reply(env, input.chatId, `当前聊天 ID：${input.chatId}`);
     return;
   }
   if (!COMMANDS.has(input.command)) return;
@@ -91,7 +107,9 @@ async function execute(input, env, role) {
     }
     await dispatch(env, scope, chatId);
     await reply(env, chatId, '已请求同步，正在核对并补发未发送歌曲；docs/latest.md 更新后才会报告结果。');
-  } else if (command === 'targets' || command === 'status') {
+  } else if (command === 'autosync') {
+    await configureSchedule(input, env);
+  } else if (command === 'targets' || command === 'targetlist' || command === 'status') {
     let query = 'SELECT t.chat_id,t.type,t.enabled,t.send_mode,t.initialized FROM targets t WHERE t.removed=0';
     const params = [];
     if (role === 'admin') {
@@ -102,6 +120,7 @@ async function execute(input, env, role) {
     const lines = rows.results.map(t => `${t.chat_id} ${t.type} ${t.enabled ? '启用' : '暂停'} ${t.send_mode} ${t.initialized ? '已初始化' : '待初始化'}`);
     if (command === 'status') {
       const installation = await env.DB.prepare('SELECT last_success FROM installation WHERE id=1').first();
+      lines.unshift(await scheduleStatus(env));
       lines.unshift(`上次成功：${installation?.last_success ? new Date(installation.last_success * 1000).toISOString() : '暂无'}`);
     }
     await reply(env, chatId, lines.join('\n') || '暂无目标。');
@@ -147,6 +166,35 @@ async function execute(input, env, role) {
   }
 }
 
+async function configureSchedule({ args, chatId }, env) {
+  if (args.length) {
+    const value = args[0];
+    if (args.length !== 1 || (!['on', 'off'].includes(value) && !/^[1-9]\d{0,2}$/.test(value))
+        || (!['on', 'off'].includes(value) && Number(value) > 168)) {
+      await reply(env, chatId, '用法：/autosync 查看；/autosync <1–168 整数小时> 调整；/autosync off 暂停；/autosync on 恢复。');
+      return;
+    }
+    if (value === 'off') {
+      await env.DB.prepare('UPDATE sync_schedule SET enabled=0 WHERE id=1').bind().run();
+    } else if (value === 'on') {
+      await env.DB.prepare('UPDATE sync_schedule SET enabled=1,next_run=? + interval_hours * 3600 WHERE id=1')
+        .bind(now()).run();
+    } else {
+      const hours = Number(value);
+      await env.DB.prepare('UPDATE sync_schedule SET interval_hours=?,enabled=1,next_run=? WHERE id=1')
+        .bind(hours, now() + hours * 3600).run();
+    }
+  }
+  await reply(env, chatId, await scheduleStatus(env));
+}
+
+async function scheduleStatus(env) {
+  const state = await env.DB.prepare('SELECT * FROM sync_schedule WHERE id=1').bind().first();
+  const last = state.last_dispatch ? new Date(state.last_dispatch * 1000).toISOString() : '暂无';
+  const next = !state.enabled ? '已暂停' : state.next_run ? new Date(state.next_run * 1000).toISOString() : '下次检查';
+  return `自动同步：${state.enabled ? '启用' : '暂停'}，每 ${state.interval_hours} 小时\n上次自动请求：${last}\n下次到期：${next}\n每 5 分钟检查一次；请求后由 Actions 排队执行。`;
+}
+
 async function assigned(env, userId, chatId) {
   return !!(await env.DB.prepare('SELECT chat_id FROM admin_targets WHERE user_id=? AND chat_id=?')
     .bind(userId, chatId).first());
@@ -178,7 +226,7 @@ async function dispatch(env, scope, replyChatId) {
   const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/actions/workflows/sync.yml/dispatches`, {
     method: 'POST', headers: { Authorization: `Bearer ${env.GITHUB_WORKFLOW_TRIGGER_TOKEN}`,
       Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'TGMusic-Worker' },
-    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { reply_chat_id: String(replyChatId),
+    body: JSON.stringify({ ref: env.GITHUB_REF || 'main', inputs: { ...(replyChatId === undefined ? {} : { reply_chat_id: String(replyChatId) }),
       ...(scope ? { target_chat_ids: JSON.stringify(scope) } : {}) } }), signal: AbortSignal.timeout(10000),
   });
   if (response.status !== 204) throw new Error('GitHub dispatch failed');

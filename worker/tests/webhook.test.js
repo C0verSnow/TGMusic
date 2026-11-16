@@ -333,3 +333,19 @@ test('manual sync does not move the automatic due time, and still works while pa
     for (const command of ['/autosync', '/targetlist', '/id']) assert.ok(f.calls.at(-1).data.text.includes(command));
   } finally { f.cleanup(); }
 });
+
+
+test('public id is deduplicated, ignores other bots and does not accept channel posts', async () => {
+  const f = fixture();
+  try {
+    await f.send('/id@anotherbot', 99, -999);
+    assert.equal(f.calls.length, 0);
+    await f.send('/id', 99, -999, 'secret', 900);
+    await f.send('/id', 99, -999, 'secret', 900);
+    assert.equal(f.calls.length, 1);
+    assert.equal(f.query('SELECT * FROM targets WHERE chat_id=-999').length, 0);
+    assert.equal(parseUpdate({ update_id: 901, channel_post: { text: '/id', chat: { id: -999, type: 'channel' } } }), null);
+    assert.equal(parseUpdate({ update_id: 902, message: { from: { id: 99, is_bot: true },
+      text: '/id', chat: { id: -999, type: 'supergroup' } } }), null);
+  } finally { f.cleanup(); }
+});

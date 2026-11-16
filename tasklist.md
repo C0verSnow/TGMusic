@@ -34,6 +34,7 @@
 - [1794474792] PR 交给作者 review；后续真实账号联调按用户决定另行开展。
 
 ## 做完：
+- [1794797552] Issue #14 的远端复现 CI 43794488688 在旧 Worker 上失败，新增指令没有回复，scheduled 入口不存在；原有 Docker 检查通过。真实日志证实旧定时触发过，部分音频失败，不把任务失败说成从未调度。
 - [1794654592] 用户要求核查并开启每六小时自动同步。已核对 GitHub 默认分支工作流为 active，使用 UTC 00:17、06:17、12:17、18:17，定时任务需要仓库变量 TGMUSIC_ENABLED=true；Docker 登录脚本不会开启定时。已按用户明确要求将 GitHub 仓库变量设为 true，并通过 GitHub API 回读确认；此前日志中的“定时关闭”仅代表当时状态。
 - [1794588473] Issue #11 已按要求关闭，PR #13 已提交；1166f8c 的 push CI 43465248607 与 PR CI 43465310408 均通过（Python 76、Worker 13、打包及 push Docker）。正式 TGMusic/@C0verSnow_TGMusic_bot 已创建、设置头像，两个目录 Token 读回一致，自动 Secret Sync 成功；Worker 无打包部署完成，新 Webhook 正常、旧 Webhook 停用。
 - [1794588473] 新 Bot 已在 Owner 私聊 /start 并成为原 Music 群管理员，真实群内 /addtarget 得到正确群 ID 和成功回复，D1 审计 allowed，184 条历史未变。已更新 README、设计与验收记录；GitHub 检索比较 python-telegram-bot/aiogram，保持现有依赖。未进行本地构建、编译或测试。
@@ -156,6 +157,7 @@
 - [1794533810] 本轮没有进行本地构建、编译、测试或冒烟验证，也没有启动本地 Docker 登录服务；仅做静态解析与差异检查，执行 Telegram / Infisical / Cloudflare 的实际 CLI 操作，代码测试交给远端 CI。
 
 ## 在做：
+- [1794797552] 已实现 Worker 到期检查、D1 周期持久化、Owner /autosync、权限内 /targetlist 和公开 /id，保留原同步与发送边界；准备静态检查和修复后远端 CI。
 - [1794797373] 本地缺少 TGMusic，已从原仓库拉取，在 feature/issue-14-sync-controls 工作；先加真实 SQLite 回归，通过现有远端 CI 确认问题。仅做本地静态检查，不编译、不跑本地测试。
 - [1794588473] Issue #11 功能与线上迁移已完成；最后文档提交继续交远端 CI，PR 转为待用户 review。
 - [1794587300] 本轮任务已完成，没有正在执行的密钥变更；更早时间戳保留此前任务历史。
