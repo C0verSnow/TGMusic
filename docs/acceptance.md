@@ -219,11 +219,13 @@ Cloudflare 官方自动同步已切到 dev，2026-11-13T16:05:18.998Z 成功；W
 
 ## Issue #14：自动同步与查询指令
 
-- [ ] 远端 CI：默认六小时到期检查、周期修改与持久化、暂停恢复、到期前不触发、失败下轮再试、持有租约/无目标/未初始化跳过，手动同步不改变自动到期时间。
-- [ ] 远端 CI：`/id` 在未授权群与私聊可用；`/targetlist` 不泄露 Admin 未授权目标，不包含已移除目标；Guest 不能查看目标或修改周期。
+- [x] 远端 CI：默认六小时到期检查、周期修改与持久化、暂停恢复、到期前不触发、失败下轮再试、持有租约/无目标/未初始化跳过，手动同步不改变自动到期时间。
+- [x] 远端 CI：`/id` 在未授权群与私聊可用；`/targetlist` 不泄露 Admin 未授权目标，不包含已移除目标；Guest 不能查看目标或修改周期。
 - [ ] review 合并后应用全部 D1 迁移，再部署 Worker 和 Cron；检查旧 GitHub schedule 已移除，Cloudflare Cron 传播后只有一套调度。
 - [ ] Owner 实际执行 `/autosync`、`/autosync 3`、`/autosync off`、`/autosync on`，确认下次到期与最近自动请求；管理命令之间等 10 秒。重启 Worker 后设置仍保留。
 - [ ] 实际群 `/id@C0verSnow_TGMusic_bot` 与 `/targetlist`，核对 ID、目标状态与 Admin 范围。
 - [ ] 到期后核对 Actions 的 workflow_dispatch 与 Worker last_dispatch，随后核对 Runner 结果及 last_success；不能把已请求当成已发完。
 
 本轮不在 review 前部署或向真实聊天发测试消息，线上验收以上线后的实际记录为准。
+
+修复提交 `e69673e` 的 [PR CI](https://github.com/C0verSnow/TGMusic/actions/runs/43795044852) 和 [push CI](https://github.com/C0verSnow/TGMusic/actions/runs/43795039313) 全通过：Python 76、Worker 20、Worker 打包，push 另含 Docker 浏览器。旧代码的 [复现 CI](https://github.com/C0verSnow/TGMusic/actions/runs/43794488688) 为 13 项通过、6 项新增回归失败；首次修复的状态查询仅因 SQLite 夹具缺少无参数接口失败，补齐后通过。PR #15 已转待 review，Issue #14 已按正文要求关闭；未合并、未部署，未做本地编译或测试。
